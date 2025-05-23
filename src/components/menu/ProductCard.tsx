@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { OrderCounter } from './OrderCounter';
 
@@ -9,6 +10,9 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ image, name, price, description }: ProductCardProps) {
+  // Create a unique ID from the name (not ideal for production, but works for demo)
+  const id = name.toLowerCase().replace(/\s+/g, '-');
+
   return (
     <div className="bg-[rgba(227,167,107,0.24)] p-4 rounded-[50px]">
       <div className="flex justify-between items-center mb-4">
@@ -25,7 +29,7 @@ export function ProductCard({ image, name, price, description }: ProductCardProp
         <p className="text-xl font-bold text-[#d4462d]">Rp. {price.toLocaleString()}</p>
       </div>
 
-      <OrderCounter />
+      <OrderCounter id={id} name={name} price={price} image={image} />
     </div>
   );
 }
