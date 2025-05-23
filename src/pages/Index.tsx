@@ -1,50 +1,10 @@
+
 import React from 'react';
 import { Layout } from '../components/layout/Layout';
-import { LoginForm } from '../components/auth/LoginForm';
-import { ReservationForm } from '../components/reservation/ReservationForm';
-import { ProductCard } from '../components/menu/ProductCard';
-import { SearchBar } from '../components/ui/SearchBar';
+import { Link } from 'react-router-dom';
 import { ServiceCard } from '../components/ui/ServiceCard';
 
 export default function Index() {
-  const specialCoffees = [
-    {
-      image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/6268e9cdd7ad0a1667165091747429dfd0387b0a?placeholderIfAbsent=true',
-      name: 'Ice Kopi Susu',
-      price: 22000
-    },
-    {
-      image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/a882cffbb4f2ef179c6a7a20f67fd69443be1db2?placeholderIfAbsent=true',
-      name: 'Ice Matcha Espresso',
-      price: 30000
-    },
-    // Add all other coffee items...
-  ];
-
-  const snacks = [
-    {
-      image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/f10dffeee6529562c0b99f546f2f4c96cdb9ba5e?placeholderIfAbsent=true',
-      name: 'Pisang Coklat',
-      price: 10000
-    },
-    {
-      image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/4a0a584836e3ce06c11dffacb9dcd5522a6327a0?placeholderIfAbsent=true',
-      name: 'Empek-empek Telur',
-      price: 15000
-    },
-    // Add all other snack items...
-  ];
-
-  const meals = [
-    {
-      image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/a87859f430c9606fa779269879c949fad50d3f35?placeholderIfAbsent=true',
-      name: 'Original Beef Bowl',
-      price: 40000,
-      description: 'Slice beef premium dimasak dengan soy sauce ditambah dengan telur mata sapi'
-    },
-    // Add all other meal items...
-  ];
-
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -62,12 +22,12 @@ export default function Index() {
           </p>
           
           <div className="flex justify-center gap-4 mt-8">
-            <button className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full">
+            <Link to="/reservation" className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full">
               RESERVASI MEJA
-            </button>
-            <button className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full">
+            </Link>
+            <Link to="/menu" className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full">
               MENU
-            </button>
+            </Link>
           </div>
         </section>
 
@@ -95,40 +55,32 @@ export default function Index() {
           </div>
         </section>
 
-        {/* Menu Sections */}
+        {/* Featured Menu Section */}
         <section className="mb-16">
-          <div className="mb-8">
-            <SearchBar />
-          </div>
-
-          {/* Special Coffee */}
-          <div className="mb-12">
-            <h2 className="text-xl font-bold text-[#d4462d] mb-6">Kopi Spesial</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {specialCoffees.map((coffee, index) => (
-                <ProductCard key={index} {...coffee} />
-              ))}
+          <h2 className="text-xl font-bold text-[#d4462d] text-center mb-8">
+            MENU FAVORIT
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-[rgba(227,167,107,0.24)] p-6 rounded-[50px] text-center">
+              <img src="https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/6268e9cdd7ad0a1667165091747429dfd0387b0a?placeholderIfAbsent=true" alt="Ice Kopi Susu" className="w-full aspect-square object-cover rounded-full mb-4" />
+              <h3 className="text-xl font-bold text-[#d4462d] mb-2">Ice Kopi Susu</h3>
+              <p className="text-xl font-bold text-[#d4462d]">Rp. 22.000</p>
+            </div>
+            <div className="bg-[rgba(227,167,107,0.24)] p-6 rounded-[50px] text-center">
+              <img src="https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/f10dffeee6529562c0b99f546f2f4c96cdb9ba5e?placeholderIfAbsent=true" alt="Pisang Coklat" className="w-full aspect-square object-cover rounded-full mb-4" />
+              <h3 className="text-xl font-bold text-[#d4462d] mb-2">Pisang Coklat</h3>
+              <p className="text-xl font-bold text-[#d4462d]">Rp. 10.000</p>
+            </div>
+            <div className="bg-[rgba(227,167,107,0.24)] p-6 rounded-[50px] text-center">
+              <img src="https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/a87859f430c9606fa779269879c949fad50d3f35?placeholderIfAbsent=true" alt="Original Beef Bowl" className="w-full aspect-square object-cover rounded-full mb-4" />
+              <h3 className="text-xl font-bold text-[#d4462d] mb-2">Original Beef Bowl</h3>
+              <p className="text-xl font-bold text-[#d4462d]">Rp. 40.000</p>
             </div>
           </div>
-
-          {/* Snacks */}
-          <div className="mb-12">
-            <h2 className="text-xl font-bold text-[#d4462d] mb-6">Cemilan Favorite</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {snacks.map((snack, index) => (
-                <ProductCard key={index} {...snack} />
-              ))}
-            </div>
-          </div>
-
-          {/* Meals */}
-          <div>
-            <h2 className="text-xl font-bold text-[#d4462d] mb-6">Makan Kenyang</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {meals.map((meal, index) => (
-                <ProductCard key={index} {...meal} />
-              ))}
-            </div>
+          <div className="mt-8 text-center">
+            <Link to="/menu" className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full inline-block">
+              LIHAT SEMUA MENU
+            </Link>
           </div>
         </section>
 
@@ -142,12 +94,6 @@ export default function Index() {
             <img src="https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/eedabfc471dd01fb886ab3e7cd5be0c6759d4d3d?placeholderIfAbsent=true" alt="Atmosphere 2" className="w-[163px] h-[240px] object-cover" />
           </div>
         </section>
-
-        {/* Forms Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <LoginForm />
-          <ReservationForm />
-        </div>
       </div>
     </Layout>
   );
