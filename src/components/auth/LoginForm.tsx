@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -23,7 +22,7 @@ export function LoginForm() {
     console.log(data);
     
     // Check if credentials match admin credentials
-    if (data.email === 'kopidarihati@email.com' && data.password === 'admin123') {
+    if (data.email === 'kopidarihati@gmail.com' && data.password === 'admin123') {
       toast.success('Login berhasil! Selamat datang Admin.');
       // Store login status in localStorage
       localStorage.setItem('isAdminLoggedIn', 'true');
