@@ -1,7 +1,10 @@
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -11,12 +14,25 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
+  const navigate = useNavigate();
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema)
   });
 
   const onSubmit = (data: LoginFormData) => {
     console.log(data);
+    
+    // Check if credentials match admin credentials
+    if (data.email === 'kopidarihati@email.com' && data.password === 'admin123') {
+      toast.success('Login berhasil! Selamat datang Admin.');
+      // Store login status in localStorage
+      localStorage.setItem('isAdminLoggedIn', 'true');
+      localStorage.setItem('adminEmail', data.email);
+      // Redirect to admin dashboard
+      navigate('/admin');
+    } else {
+      toast.error('Email atau password salah. Silakan coba lagi.');
+    }
   };
 
   return (
@@ -56,7 +72,7 @@ export function LoginForm() {
 
         <button
           type="submit"
-          className="w-full bg-[#df5353] text-white font-bold py-3 px-4 rounded"
+          className="w-full bg-[#df5353] text-white font-bold py-3 px-4 rounded hover:bg-[#c84444] transition-colors"
         >
           Log in
         </button>
