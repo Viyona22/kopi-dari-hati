@@ -5,6 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search } from 'lucide-react';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
@@ -15,41 +22,21 @@ import {
 
 export function PurchaseTable() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [purchases, setPurchases] = useState<any[]>([]);
 
-  const purchases = [
-    {
-      no: 1,
-      tanggal: "24/05/2024",
-      produk: "Sunblock",
-      total: "Rp150.000",
-      status: "Selesai"
-    },
-    {
-      no: 2,
-      tanggal: "22/05/2024",
-      produk: "Moisturizer",
-      total: "Rp200.000",
-      status: "Diproses"
-    },
-    {
-      no: 3,
-      tanggal: "22/05/2024",
-      produk: "Face Wash",
-      total: "Rp80.000",
-      status: "Dibatalkan"
-    },
-    {
-      no: 4,
-      tanggal: "20/05/2024",
-      produk: "Serum",
-      total: "Rp140.000",
-      status: "Selesai"
-    }
-  ];
+  const handleStatusChange = (purchaseId: number, newStatus: string) => {
+    setPurchases(prev => 
+      prev.map(purchase => 
+        purchase.no === purchaseId 
+          ? { ...purchase, status: newStatus }
+          : purchase
+      )
+    );
+  };
 
   const filteredPurchases = purchases.filter(purchase =>
-    purchase.produk.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    purchase.tanggal.includes(searchTerm)
+    purchase.produk?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    purchase.tanggal?.includes(searchTerm)
   );
 
   const getStatusColor = (status: string) => {
@@ -85,32 +72,62 @@ export function PurchaseTable() {
         </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-gray-50">
-              <TableHead className="font-semibold text-gray-700">No</TableHead>
-              <TableHead className="font-semibold text-gray-700">Tanggal</TableHead>
-              <TableHead className="font-semibold text-gray-700">Produk</TableHead>
-              <TableHead className="font-semibold text-gray-700">Total</TableHead>
-              <TableHead className="font-semibold text-gray-700">Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredPurchases.map((purchase) => (
-              <TableRow key={purchase.no} className="hover:bg-gray-50">
-                <TableCell className="font-medium">{purchase.no}</TableCell>
-                <TableCell>{purchase.tanggal}</TableCell>
-                <TableCell>{purchase.produk}</TableCell>
-                <TableCell className="font-medium">{purchase.total}</TableCell>
-                <TableCell>
-                  <Badge className={getStatusColor(purchase.status)}>
-                    {purchase.status}
-                  </Badge>
-                </TableCell>
+        {purchases.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            Belum ada data pembelian
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-50">
+                <TableHead className="font-semibold text-gray-700">No</TableHead>
+                <TableHead className="font-semibold text-gray-700">Tanggal</TableHead>
+                <TableHead className="font-semibold text-gray-700">Produk</TableHead>
+                <TableHead className="font-semibold text-gray-700">Total</TableHead>
+                <TableHead className="font-semibold text-gray-700">Status</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredPurchases.map((purchase) => (
+                <TableRow key={purchase.no} className="hover:bg-gray-50">
+                  <TableCell className="font-medium">{purchase.no}</TableCell>
+                  <TableCell>{purchase.tanggal}</TableCell>
+                  <TableCell>{purchase.produk}</TableCell>
+                  <TableCell className="font-medium">{purchase.total}</TableCell>
+                  <TableCell>
+                    <Select
+                      value={purchase.status}
+                      onValueChange={(value) => handleStatusChange(purchase.no, value)}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <Badge className={getStatusColor(purchase.status)}>
+                          {purchase.status}
+                        </Badge>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Diproses">
+                          <Badge className="bg-orange-100 text-orange-800">
+                            Diproses
+                          </Badge>
+                        </SelectItem>
+                        <SelectItem value="Selesai">
+                          <Badge className="bg-green-100 text-green-800">
+                            Selesai
+                          </Badge>
+                        </SelectItem>
+                        <SelectItem value="Dibatalkan">
+                          <Badge className="bg-red-100 text-red-800">
+                            Dibatalkan
+                          </Badge>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );
