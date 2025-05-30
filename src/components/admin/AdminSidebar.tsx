@@ -16,7 +16,6 @@ import {
   Calendar, 
   ShoppingBag, 
   UtensilsCrossed, 
-  Users, 
   Settings 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,11 +40,6 @@ const menuItems = [
     title: "Menu Makanan & Minuman",
     icon: UtensilsCrossed,
     url: "/admin/menu",
-  },
-  {
-    title: "Data Pelanggan",
-    icon: Users,
-    url: "/admin/customers",
   },
   {
     title: "Pengaturan",
