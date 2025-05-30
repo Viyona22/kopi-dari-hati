@@ -51,39 +51,39 @@ export function MenuManagement() {
     image: ''
   });
 
-  // Initial menu data from Menu.tsx
+  // Menu data sesuai Figma design
   const [menuItems, setMenuItems] = useState<MenuItem[]>([
     // Kopi Special
-    { id: '1', name: 'Ice Kopi Susu', price: 22000, category: 'kopi', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/6268e9cdd7ad0a1667165091747429dfd0387b0a?placeholderIfAbsent=true' },
-    { id: '2', name: 'Ice Matcha Espresso', price: 30000, category: 'kopi', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/a882cffbb4f2ef179c6a7a20f67fd69443be1db2?placeholderIfAbsent=true' },
-    { id: '3', name: 'Ice Coffee Shake', price: 25000, category: 'kopi', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/4ea9f3e5c46371c16d658e202c231a36de7c3475?placeholderIfAbsent=true' },
-    { id: '4', name: 'Ice Red Velvet Latte', price: 25000, category: 'kopi', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/8e02a424a750a7553ffc5cec6452aa9349e21fa2?placeholderIfAbsent=true' },
-    { id: '5', name: 'Ice Double Mocha', price: 25000, category: 'kopi', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/9413fb82294f3f5a0c9e90c179c1a17772cb881e?placeholderIfAbsent=true' },
-    { id: '6', name: 'Hot Americano', price: 20000, category: 'kopi', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/013e1d29df3651efe87d10af7f9776f73ce1a636?placeholderIfAbsent=true' },
-    { id: '7', name: 'Hot Cappuccino', price: 25000, category: 'kopi', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/f1cbed3faaf6c4f43ac7f34d84077e488475a06c?placeholderIfAbsent=true' },
-    { id: '8', name: 'Hot Coffee Latte', price: 25000, category: 'kopi', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/12b29b8e9a71aa9af8c87dc56c7f849c39b8a234?placeholderIfAbsent=true' },
-    { id: '9', name: 'Hot Espresso', price: 20000, category: 'kopi', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/d2c4d1e2161694b025810a5179c2b016ff081a0b?placeholderIfAbsent=true' },
-    { id: '10', name: 'Le Mineral', price: 8000, category: 'kopi', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/88ce0d05767d77f17dd4a3b5ba15c9919cd3a872?placeholderIfAbsent=true' },
+    { id: '1', name: 'Ice Kopi Susu', price: 22000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '2', name: 'Ice Matcha Espresso', price: 30000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '3', name: 'Ice Coffee Shake', price: 25000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '4', name: 'Ice Hazelnut Latte', price: 28000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '5', name: 'Ice Red Velvet Latte', price: 25000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '6', name: 'Ice Kops Latte', price: 24000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '7', name: 'Hot Americano', price: 20000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '8', name: 'Hot Coffee Latte', price: 25000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '9', name: 'Hot Cappuccino', price: 23000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '10', name: 'Le Mineral', price: 8000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
     
     // Cemilan Favorite
-    { id: '11', name: 'Pisang Coklat', price: 10000, category: 'cemilan', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/f10dffeee6529562c0b99f546f2f4c96cdb9ba5e?placeholderIfAbsent=true' },
-    { id: '12', name: 'Otak-otak Bakar', price: 15000, category: 'cemilan', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/4a0a584836e3ce06c11dffacb9dcd5522a6327a0?placeholderIfAbsent=true' },
-    { id: '13', name: 'Tteokbokki', price: 20000, category: 'cemilan', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/f0f4fd16a6d97a6dc113a44c15964b892a116c50?placeholderIfAbsent=true' },
-    { id: '14', name: 'Mie Tek-tek', price: 15000, category: 'cemilan', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/2db510491c5c242178580c22a0016223b9a38926?placeholderIfAbsent=true' },
-    { id: '15', name: 'Nugget Goreng', price: 12000, category: 'cemilan', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/c51e0c3eeb558bde1bb4753be7a5b92e54f2ba7c?placeholderIfAbsent=true' },
-    { id: '16', name: 'Kentang Goreng', price: 15000, category: 'cemilan', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/c1fa0c53907bc6a0ed4b8a4f8c021f89ae77e840?placeholderIfAbsent=true' },
+    { id: '11', name: 'Pisang Coklat', price: 10000, category: 'cemilan', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '12', name: 'Sempek-2', price: 12000, category: 'cemilan', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '13', name: 'Tteokbokki', price: 20000, category: 'cemilan', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '14', name: 'Mie Tek-tek', price: 15000, category: 'cemilan', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '15', name: 'Nugget Goreng', price: 12000, category: 'cemilan', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '16', name: 'Kentang Goreng', price: 15000, category: 'cemilan', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
     
     // Makan Kenyang
-    { id: '17', name: 'Original Beef Bowl', price: 40000, category: 'makanan', description: 'Slice beef premium dimasak dengan soy sauce ditambah dengan telur mata sapi', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/a87859f430c9606fa779269879c949fad50d3f35?placeholderIfAbsent=true' },
-    { id: '18', name: 'Teriyaki Beef Bowl', price: 40000, category: 'makanan', description: 'Slice beef premium dimasak dengan saus teriyaki ditambah telur mata sapi', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/730370f0e60278cceaf5ec3c12a79f907705529e?placeholderIfAbsent=true' },
-    { id: '19', name: 'Original Beef Bowl Special', price: 45000, category: 'makanan', description: 'Original beef bowl dengan tambahan sayuran dan keju', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/023b16447e0cb928a69a828370ebd31bba33b8e3?placeholderIfAbsent=true' },
-    { id: '20', name: 'Beef Bowl with Special Sauce', price: 45000, category: 'makanan', description: 'Beef bowl dengan saus spesial kopi dari hati', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/d4e9062045a4da629131c19a7184d5ce3b29ea90?placeholderIfAbsent=true' },
-    { id: '21', name: 'Nasi Goreng Special', price: 30000, category: 'makanan', description: 'Nasi goreng dengan telur mata sapi dan ayam', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/e9330a9790fc2ba1f1bdeae3ac51518dd0b62132?placeholderIfAbsent=true' },
-    { id: '22', name: 'Mie Goreng Special', price: 30000, category: 'makanan', description: 'Mie goreng dengan telur dan ayam', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/386ef893cca6e9ebb7e78a656f2e31aa2bdb6ee8?placeholderIfAbsent=true' },
-    { id: '23', name: 'Mie Koba Bangka Original', price: 25000, category: 'makanan', description: 'Mie khas Bangka dengan bakso ikan dan sayuran', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/56e389493465126608506ed4b0beb63a1a0cd709?placeholderIfAbsent=true' },
-    { id: '24', name: 'Beef Maki Special Mushroom', price: 45000, category: 'makanan', description: 'Beef roll dengan jamur spesial', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/f1cbed3faaf6c4f43ac7f34d84077e488475a06c?placeholderIfAbsent=true' },
-    { id: '25', name: 'Nasi Ayam Geprek', price: 25000, category: 'makanan', description: 'Nasi dengan ayam geprek pedas', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/12b29b8e9a71aa9af8c87dc56c7f849c39b8a234?placeholderIfAbsent=true' },
-    { id: '26', name: 'Nasi Cabe Gilingan', price: 28000, category: 'makanan', description: 'Nasi dengan sambal cabe gilingan dan lauk', image: 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/d2c4d1e2161694b025810a5179c2b016ff081a0b?placeholderIfAbsent=true' }
+    { id: '17', name: 'Original Beef Bowl', price: 40000, category: 'makanan', description: 'Slice beef premium dimasak dengan soy sauce ditambah dengan telur mata sapi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '18', name: 'Teriyaki Beef Bowl', price: 40000, category: 'makanan', description: 'Slice beef premium dimasak dengan saus teriyaki ditambah telur mata sapi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '19', name: 'Bulgogi Beef Bowl', price: 45000, category: 'makanan', description: 'Korean style beef bowl dengan rasa bulgogi yang autentik', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '20', name: 'Beef Bowl Special', price: 45000, category: 'makanan', description: 'Beef bowl dengan saus spesial kopi dari hati', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '21', name: 'Nasi Goreng Special', price: 30000, category: 'makanan', description: 'Nasi goreng dengan telur mata sapi dan ayam', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '22', name: 'Nasi Chicken Katsu', price: 32000, category: 'makanan', description: 'Nasi dengan chicken katsu crispy dan saus special', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '23', name: 'Nasi Ayam Geprek', price: 25000, category: 'makanan', description: 'Nasi dengan ayam geprek pedas', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '24', name: 'Nasi Sup Ayam', price: 28000, category: 'makanan', description: 'Nasi dengan sup ayam hangat dan sayuran', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '25', name: 'Nasi Telur Dadar', price: 20000, category: 'makanan', description: 'Nasi dengan telur dadar dan lauk pelengkap', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
+    { id: '26', name: 'Nasi Ayam Bakar', price: 30000, category: 'makanan', description: 'Nasi dengan ayam bakar bumbu khas', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' }
   ]);
 
   const filteredMenuItems = menuItems.filter(item => {
@@ -145,7 +145,7 @@ export function MenuManagement() {
       price: newItem.price!,
       category: newItem.category as 'kopi' | 'cemilan' | 'makanan',
       description: newItem.description || undefined,
-      image: newItem.image || 'https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/placeholder?placeholderIfAbsent=true'
+      image: newItem.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png'
     };
     
     setMenuItems(items => [...items, itemToAdd]);
@@ -256,6 +256,7 @@ export function MenuManagement() {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
+              <TableHead className="font-semibold text-gray-700">Gambar</TableHead>
               <TableHead className="font-semibold text-gray-700">Nama Menu</TableHead>
               <TableHead className="font-semibold text-gray-700">Kategori</TableHead>
               <TableHead className="font-semibold text-gray-700">Harga</TableHead>
@@ -266,6 +267,13 @@ export function MenuManagement() {
           <TableBody>
             {filteredMenuItems.map((item) => (
               <TableRow key={item.id} className="hover:bg-gray-50">
+                <TableCell>
+                  <img 
+                    src={item.image} 
+                    alt={item.name}
+                    className="w-16 h-16 object-cover rounded-md"
+                  />
+                </TableCell>
                 <TableCell>
                   {editingItem?.id === item.id ? (
                     <Input
