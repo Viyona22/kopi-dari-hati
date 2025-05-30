@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Edit, Trash, Save, X, ImageIcon } from 'lucide-react';
+import { ImageUpload } from '@/components/admin/ImageUpload';
 import {
   Table,
   TableBody,
@@ -152,7 +153,19 @@ export function MenuManagement() {
     setIsAddDialogOpen(false);
   };
 
-  const handleRemoveImage = (itemId: string) => {
+  const handleImageChange = (itemId: string, imageUrl: string) => {
+    if (editingItem?.id === itemId) {
+      setEditingItem({ ...editingItem, image: imageUrl });
+    } else {
+      setMenuItems(items => 
+        items.map(item => 
+          item.id === itemId ? { ...item, image: imageUrl } : item
+        )
+      );
+    }
+  };
+
+  const handleImageRemove = (itemId: string) => {
     if (editingItem?.id === itemId) {
       setEditingItem({ ...editingItem, image: '' });
     } else {
@@ -199,7 +212,7 @@ export function MenuManagement() {
                 Tambah Menu
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Tambah Menu Baru</DialogTitle>
               </DialogHeader>
@@ -243,11 +256,11 @@ export function MenuManagement() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium">URL Gambar (opsional)</label>
-                  <Input
-                    value={newItem.image}
-                    onChange={(e) => setNewItem({ ...newItem, image: e.target.value })}
-                    placeholder="Masukkan URL gambar"
+                  <label className="text-sm font-medium">Gambar Menu</label>
+                  <ImageUpload
+                    currentImage={newItem.image}
+                    onImageChange={(imageUrl) => setNewItem({ ...newItem, image: imageUrl })}
+                    onImageRemove={() => setNewItem({ ...newItem, image: '' })}
                   />
                 </div>
                 <div className="flex gap-2 pt-4">
@@ -280,33 +293,11 @@ export function MenuManagement() {
               <TableRow key={item.id} className="hover:bg-gray-50">
                 <TableCell>
                   {editingItem?.id === item.id ? (
-                    <div className="space-y-2">
-                      {editingItem.image && (
-                        <div className="relative">
-                          <img 
-                            src={editingItem.image} 
-                            alt={editingItem.name}
-                            className="w-16 h-16 object-cover rounded-md"
-                          />
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                            onClick={() => handleRemoveImage(editingItem.id)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
-                      <div>
-                        <Input
-                          value={editingItem.image}
-                          onChange={(e) => setEditingItem({ ...editingItem, image: e.target.value })}
-                          placeholder="URL gambar"
-                          className="text-xs"
-                        />
-                      </div>
-                    </div>
+                    <ImageUpload
+                      currentImage={editingItem.image}
+                      onImageChange={(imageUrl) => handleImageChange(editingItem.id, imageUrl)}
+                      onImageRemove={() => handleImageRemove(editingItem.id)}
+                    />
                   ) : (
                     <div className="relative group">
                       {item.image ? (
