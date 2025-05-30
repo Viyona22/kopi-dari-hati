@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Edit, Trash, Save, X } from 'lucide-react';
+import { Search, Plus, Edit, Trash, Save, X, ImageIcon } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -153,6 +152,18 @@ export function MenuManagement() {
     setIsAddDialogOpen(false);
   };
 
+  const handleRemoveImage = (itemId: string) => {
+    if (editingItem?.id === itemId) {
+      setEditingItem({ ...editingItem, image: '' });
+    } else {
+      setMenuItems(items => 
+        items.map(item => 
+          item.id === itemId ? { ...item, image: '' } : item
+        )
+      );
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -268,11 +279,49 @@ export function MenuManagement() {
             {filteredMenuItems.map((item) => (
               <TableRow key={item.id} className="hover:bg-gray-50">
                 <TableCell>
-                  <img 
-                    src={item.image} 
-                    alt={item.name}
-                    className="w-16 h-16 object-cover rounded-md"
-                  />
+                  {editingItem?.id === item.id ? (
+                    <div className="space-y-2">
+                      {editingItem.image && (
+                        <div className="relative">
+                          <img 
+                            src={editingItem.image} 
+                            alt={editingItem.name}
+                            className="w-16 h-16 object-cover rounded-md"
+                          />
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                            onClick={() => handleRemoveImage(editingItem.id)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                      <div>
+                        <Input
+                          value={editingItem.image}
+                          onChange={(e) => setEditingItem({ ...editingItem, image: e.target.value })}
+                          placeholder="URL gambar"
+                          className="text-xs"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative group">
+                      {item.image ? (
+                        <img 
+                          src={item.image} 
+                          alt={item.name}
+                          className="w-16 h-16 object-cover rounded-md"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
+                          <ImageIcon className="h-6 w-6 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell>
                   {editingItem?.id === item.id ? (
