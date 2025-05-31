@@ -1,3 +1,4 @@
+
 import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +7,7 @@ import { cn } from '@/lib/utils';
 
 interface ImageUploadProps {
   currentImage?: string;
-  onImageChange: (imageUrl: string) => void;
+  onImageChange: (file: File) => void;
   onImageRemove: () => void;
   onSave?: () => void;
   className?: string;
@@ -24,10 +25,9 @@ export function ImageUpload({ currentImage, onImageChange, onImageRemove, onSave
     setIsUploading(true);
     
     try {
-      // Pass the file object to the parent component instead of creating a local URL
       onImageChange(file);
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Error handling file:', error);
     } finally {
       setIsUploading(false);
     }
