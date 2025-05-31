@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,9 +24,8 @@ export function ImageUpload({ currentImage, onImageChange, onImageRemove, onSave
     setIsUploading(true);
     
     try {
-      // Create a local URL for the uploaded image
-      const imageUrl = URL.createObjectURL(file);
-      onImageChange(imageUrl);
+      // Pass the file object to the parent component instead of creating a local URL
+      onImageChange(file);
     } catch (error) {
       console.error('Error uploading image:', error);
     } finally {

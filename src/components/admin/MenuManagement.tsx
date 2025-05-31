@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Edit, Trash, Save, X, ImageIcon } from 'lucide-react';
 import { ImageUpload } from '@/components/admin/ImageUpload';
+import { useMenuData } from '@/hooks/useMenuData';
+import { MenuItem } from '@/lib/supabase';
+import { toast } from 'sonner';
 import {
   Table,
   TableBody,
@@ -29,16 +33,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-interface MenuItem {
-  id: string;
-  name: string;
-  price: number;
-  category: 'kopi' | 'cemilan' | 'makanan';
-  description?: string;
-  image: string;
-}
-
 export function MenuManagement() {
+  const { menuItems, loading, saveMenuItem, deleteMenuItem, uploadImage } = useMenuData();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
@@ -50,41 +46,6 @@ export function MenuManagement() {
     description: '',
     image: ''
   });
-
-  // Menu data sesuai Figma design
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([
-    // Kopi Special
-    { id: '1', name: 'Ice Kopi Susu', price: 22000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '2', name: 'Ice Matcha Espresso', price: 30000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '3', name: 'Ice Coffee Shake', price: 25000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '4', name: 'Ice Hazelnut Latte', price: 28000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '5', name: 'Ice Red Velvet Latte', price: 25000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '6', name: 'Ice Kops Latte', price: 24000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '7', name: 'Hot Americano', price: 20000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '8', name: 'Hot Coffee Latte', price: 25000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '9', name: 'Hot Cappuccino', price: 23000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '10', name: 'Le Mineral', price: 8000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    
-    // Cemilan Favorite
-    { id: '11', name: 'Pisang Coklat', price: 10000, category: 'cemilan', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '12', name: 'Sempek-2', price: 12000, category: 'cemilan', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '13', name: 'Tteokbokki', price: 20000, category: 'cemilan', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '14', name: 'Mie Tek-tek', price: 15000, category: 'cemilan', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '15', name: 'Nugget Goreng', price: 12000, category: 'cemilan', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '16', name: 'Kentang Goreng', price: 15000, category: 'cemilan', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    
-    // Makan Kenyang
-    { id: '17', name: 'Original Beef Bowl', price: 40000, category: 'makanan', description: 'Slice beef premium dimasak dengan soy sauce ditambah dengan telur mata sapi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '18', name: 'Teriyaki Beef Bowl', price: 40000, category: 'makanan', description: 'Slice beef premium dimasak dengan saus teriyaki ditambah telur mata sapi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '19', name: 'Bulgogi Beef Bowl', price: 45000, category: 'makanan', description: 'Korean style beef bowl dengan rasa bulgogi yang autentik', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '20', name: 'Beef Bowl Special', price: 45000, category: 'makanan', description: 'Beef bowl dengan saus spesial kopi dari hati', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '21', name: 'Nasi Goreng Special', price: 30000, category: 'makanan', description: 'Nasi goreng dengan telur mata sapi dan ayam', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '22', name: 'Nasi Chicken Katsu', price: 32000, category: 'makanan', description: 'Nasi dengan chicken katsu crispy dan saus special', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '23', name: 'Nasi Ayam Geprek', price: 25000, category: 'makanan', description: 'Nasi dengan ayam geprek pedas', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '24', name: 'Nasi Sup Ayam', price: 28000, category: 'makanan', description: 'Nasi dengan sup ayam hangat dan sayuran', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '25', name: 'Nasi Telur Dadar', price: 20000, category: 'makanan', description: 'Nasi dengan telur dadar dan lauk pelengkap', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '26', name: 'Nasi Ayam Bakar', price: 30000, category: 'makanan', description: 'Nasi dengan ayam bakar bumbu khas', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' }
-  ]);
 
   const filteredMenuItems = menuItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -114,68 +75,94 @@ export function MenuManagement() {
     setEditingItem({ ...item });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingItem) return;
     
-    setMenuItems(items => 
-      items.map(item => 
-        item.id === editingItem.id ? editingItem : item
-      )
-    );
-    setEditingItem(null);
+    try {
+      await saveMenuItem(editingItem);
+      setEditingItem(null);
+    } catch (error) {
+      console.error('Error saving edit:', error);
+    }
   };
 
   const handleCancelEdit = () => {
     setEditingItem(null);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus menu ini?')) {
-      setMenuItems(items => items.filter(item => item.id !== id));
+      try {
+        await deleteMenuItem(id);
+      } catch (error) {
+        console.error('Error deleting item:', error);
+      }
     }
   };
 
-  const handleAddItem = () => {
-    if (!newItem.name || !newItem.price) return;
+  const handleAddItem = async () => {
+    if (!newItem.name || !newItem.price) {
+      toast.error('Nama dan harga menu wajib diisi');
+      return;
+    }
     
-    const id = (Math.max(...menuItems.map(item => parseInt(item.id))) + 1).toString();
-    const itemToAdd: MenuItem = {
-      id,
-      name: newItem.name!,
-      price: newItem.price!,
-      category: newItem.category as 'kopi' | 'cemilan' | 'makanan',
-      description: newItem.description || undefined,
-      image: newItem.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png'
-    };
-    
-    setMenuItems(items => [...items, itemToAdd]);
-    setNewItem({ name: '', price: 0, category: 'kopi', description: '', image: '' });
-    setIsAddDialogOpen(false);
+    try {
+      const id = Date.now().toString();
+      const itemToAdd: MenuItem = {
+        id,
+        name: newItem.name!,
+        price: newItem.price!,
+        category: newItem.category as 'kopi' | 'cemilan' | 'makanan',
+        description: newItem.description || undefined,
+        image: newItem.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png'
+      };
+      
+      await saveMenuItem(itemToAdd);
+      setNewItem({ name: '', price: 0, category: 'kopi', description: '', image: '' });
+      setIsAddDialogOpen(false);
+    } catch (error) {
+      console.error('Error adding item:', error);
+    }
   };
 
-  const handleImageChange = (itemId: string, imageUrl: string) => {
-    if (editingItem?.id === itemId) {
-      setEditingItem({ ...editingItem, image: imageUrl });
-    } else {
-      setMenuItems(items => 
-        items.map(item => 
-          item.id === itemId ? { ...item, image: imageUrl } : item
-        )
-      );
+  const handleImageChange = async (itemId: string, file: File) => {
+    try {
+      const imageUrl = await uploadImage(file);
+      
+      if (editingItem?.id === itemId) {
+        setEditingItem({ ...editingItem, image: imageUrl });
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    }
+  };
+
+  const handleImageChangeNew = async (file: File) => {
+    try {
+      const imageUrl = await uploadImage(file);
+      setNewItem({ ...newItem, image: imageUrl });
+    } catch (error) {
+      console.error('Error uploading image:', error);
     }
   };
 
   const handleImageRemove = (itemId: string) => {
     if (editingItem?.id === itemId) {
       setEditingItem({ ...editingItem, image: '' });
-    } else {
-      setMenuItems(items => 
-        items.map(item => 
-          item.id === itemId ? { ...item, image: '' } : item
-        )
-      );
     }
   };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center py-8 text-gray-500">
+            Memuat data menu...
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -259,7 +246,7 @@ export function MenuManagement() {
                   <label className="text-sm font-medium">Gambar Menu</label>
                   <ImageUpload
                     currentImage={newItem.image}
-                    onImageChange={(imageUrl) => setNewItem({ ...newItem, image: imageUrl })}
+                    onImageChange={handleImageChangeNew}
                     onImageRemove={() => setNewItem({ ...newItem, image: '' })}
                   />
                 </div>
@@ -295,7 +282,7 @@ export function MenuManagement() {
                   {editingItem?.id === item.id ? (
                     <ImageUpload
                       currentImage={editingItem.image}
-                      onImageChange={(imageUrl) => handleImageChange(editingItem.id, imageUrl)}
+                      onImageChange={(file) => handleImageChange(editingItem.id, file)}
                       onImageRemove={() => handleImageRemove(editingItem.id)}
                     />
                   ) : (
