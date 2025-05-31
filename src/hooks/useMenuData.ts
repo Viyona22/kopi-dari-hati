@@ -10,6 +10,14 @@ export function useMenuData() {
   // Load menu items from Supabase
   const loadMenuItems = async () => {
     try {
+      // If Supabase is not configured, use default data
+      if (!supabase) {
+        console.log('Supabase not configured, using default menu items')
+        setMenuItems(getDefaultMenuItems())
+        setLoading(false)
+        return
+      }
+
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
@@ -30,6 +38,11 @@ export function useMenuData() {
   // Save menu item to Supabase
   const saveMenuItem = async (item: Omit<MenuItem, 'created_at' | 'updated_at'>) => {
     try {
+      if (!supabase) {
+        toast.error('Database not configured')
+        throw new Error('Supabase not configured')
+      }
+
       const { data, error } = await supabase
         .from('menu_items')
         .upsert(item)
@@ -50,6 +63,11 @@ export function useMenuData() {
   // Delete menu item from Supabase
   const deleteMenuItem = async (id: string) => {
     try {
+      if (!supabase) {
+        toast.error('Database not configured')
+        throw new Error('Supabase not configured')
+      }
+
       const { error } = await supabase
         .from('menu_items')
         .delete()
@@ -69,6 +87,11 @@ export function useMenuData() {
   // Upload image to Supabase storage
   const uploadImage = async (file: File): Promise<string> => {
     try {
+      if (!supabase) {
+        toast.error('Database not configured')
+        throw new Error('Supabase not configured')
+      }
+
       const fileExt = file.name.split('.').pop()
       const fileName = `${Math.random()}.${fileExt}`
       const filePath = `menu-images/${fileName}`
