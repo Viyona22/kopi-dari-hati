@@ -1,27 +1,47 @@
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useReservationData } from '@/hooks/useReservationData';
+import { toast } from 'sonner';
 
 const reservationSchema = z.object({
-  fullName: z.string().min(3),
-  email: z.string().email(),
-  phone: z.string().min(10),
-  guests: z.number().min(1),
-  date: z.string(),
-  time: z.string(),
+  fullName: z.string().min(3, 'Nama minimal 3 karakter'),
+  email: z.string().email('Email tidak valid'),
+  phone: z.string().min(10, 'Nomor telepon minimal 10 digit'),
+  guests: z.number().min(1, 'Minimal 1 tamu'),
+  date: z.string().min(1, 'Tanggal harus dipilih'),
+  time: z.string().min(1, 'Waktu harus dipilih'),
   specialRequests: z.string().optional()
 });
 
 type ReservationFormData = z.infer<typeof reservationSchema>;
 
 export function ReservationForm() {
-  const { register, handleSubmit, formState: { errors } } = useForm<ReservationFormData>({
+  const { saveReservation } = useReservationData();
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<ReservationFormData>({
     resolver: zodResolver(reservationSchema)
   });
 
-  const onSubmit = (data: ReservationFormData) => {
-    console.log(data);
+  const onSubmit = async (data: ReservationFormData) => {
+    try {
+      const reservation = {
+        id: Date.now().toString(),
+        name: data.fullName,
+        date: data.date,
+        guests: data.guests,
+        time: data.time,
+        status: 'Menunggu' as const
+      };
+
+      await saveReservation(reservation);
+      reset();
+      toast.success('Reservasi berhasil dikirim!');
+    } catch (error) {
+      console.error('Error submitting reservation:', error);
+      toast.error('Gagal mengirim reservasi');
+    }
   };
 
   return (
@@ -34,56 +54,86 @@ export function ReservationForm() {
       <h2 className="text-2xl font-bold text-[#d4462d] text-center mb-8">RESERVASI MEJA</h2>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <input
-          {...register('fullName')}
-          type="text"
-          placeholder="Nama Lengkap"
-          className="w-full p-3 rounded-lg bg-white text-[#d4462d] font-bold"
-        />
+        <div>
+          <input
+            {...register('fullName')}
+            type="text"
+            placeholder="Nama Lengkap"
+            className="w-full p-3 rounded-lg bg-white text-[#d4462d] font-bold"
+          />
+          {errors.fullName && (
+            <p className="text-red-500 text-sm mt-1">{errors.fullName.message}</p>
+          )}
+        </div>
 
-        <input
-          {...register('email')}
-          type="email"
-          placeholder="Email"
-          className="w-full p-3 rounded-lg bg-white text-[#d4462d] font-bold"
-        />
+        <div>
+          <input
+            {...register('email')}
+            type="email"
+            placeholder="Email"
+            className="w-full p-3 rounded-lg bg-white text-[#d4462d] font-bold"
+          />
+          {errors.email && (
+            <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+          )}
+        </div>
 
-        <input
-          {...register('phone')}
-          type="tel"
-          placeholder="Nomor Telepon"
-          className="w-full p-3 rounded-lg bg-white text-[#d4462d] font-bold"
-        />
+        <div>
+          <input
+            {...register('phone')}
+            type="tel"
+            placeholder="Nomor Telepon"
+            className="w-full p-3 rounded-lg bg-white text-[#d4462d] font-bold"
+          />
+          {errors.phone && (
+            <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
+          )}
+        </div>
 
-        <input
-          {...register('guests', { valueAsNumber: true })}
-          type="number"
-          placeholder="Jumlah Tamu"
-          className="w-full p-3 rounded-lg bg-white text-[#d4462d] font-bold"
-        />
+        <div>
+          <input
+            {...register('guests', { valueAsNumber: true })}
+            type="number"
+            placeholder="Jumlah Tamu"
+            className="w-full p-3 rounded-lg bg-white text-[#d4462d] font-bold"
+          />
+          {errors.guests && (
+            <p className="text-red-500 text-sm mt-1">{errors.guests.message}</p>
+          )}
+        </div>
 
-        <input
-          {...register('date')}
-          type="date"
-          className="w-full p-3 rounded-lg bg-white text-[#d4462d] font-bold"
-        />
+        <div>
+          <input
+            {...register('date')}
+            type="date"
+            className="w-full p-3 rounded-lg bg-white text-[#d4462d] font-bold"
+          />
+          {errors.date && (
+            <p className="text-red-500 text-sm mt-1">{errors.date.message}</p>
+          )}
+        </div>
 
-        <input
-          {...register('time')}
-          type="time"
-          className="w-full p-3 rounded-lg bg-white text-[#d4462d] font-bold"
-        />
+        <div>
+          <input
+            {...register('time')}
+            type="time"
+            className="w-full p-3 rounded-lg bg-white text-[#d4462d] font-bold"
+          />
+          {errors.time && (
+            <p className="text-red-500 text-sm mt-1">{errors.time.message}</p>
+          )}
+        </div>
 
         <textarea
           {...register('specialRequests')}
-          placeholder="Permintaan Khusus"
+          placeholder="Permintaan Khusus (opsional)"
           className="w-full p-3 rounded-lg bg-white text-[#d4462d] font-bold"
           rows={4}
         />
 
         <button
           type="submit"
-          className="w-full bg-[rgba(212,70,45,0.5)] text-[#d4462d] font-bold text-xl py-2 rounded-lg"
+          className="w-full bg-[rgba(212,70,45,0.5)] text-[#d4462d] font-bold text-xl py-2 rounded-lg hover:bg-[rgba(212,70,45,0.7)] transition-colors"
         >
           Kirim Reservasi
         </button>
