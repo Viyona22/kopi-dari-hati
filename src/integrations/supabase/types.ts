@@ -9,7 +9,96 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      menu_items: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          image: string | null
+          name: string
+          price: number
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          id: string
+          image?: string | null
+          name: string
+          price: number
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image?: string | null
+          name?: string
+          price?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      purchases: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          product: string
+          status: string
+          total: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id: string
+          product: string
+          status: string
+          total: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          product?: string
+          status?: string
+          total?: string
+        }
+        Relationships: []
+      }
+      reservations: {
+        Row: {
+          created_at: string | null
+          date: string
+          guests: number
+          id: string
+          name: string
+          status: string
+          time: string
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          guests: number
+          id: string
+          name: string
+          status: string
+          time: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          guests?: number
+          id?: string
+          name?: string
+          status?: string
+          time?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -10,13 +10,6 @@ export function useReservationData() {
   // Load reservations from Supabase
   const loadReservations = async () => {
     try {
-      if (!supabase) {
-        console.log('Supabase not configured, using empty reservations')
-        setReservations([])
-        setLoading(false)
-        return
-      }
-
       const { data, error } = await supabase
         .from('reservations')
         .select('*')
@@ -36,11 +29,6 @@ export function useReservationData() {
   // Save reservation to Supabase
   const saveReservation = async (reservation: Omit<Reservation, 'created_at'>) => {
     try {
-      if (!supabase) {
-        toast.error('Database not configured')
-        throw new Error('Supabase not configured')
-      }
-
       const { data, error } = await supabase
         .from('reservations')
         .upsert(reservation)
@@ -61,11 +49,6 @@ export function useReservationData() {
   // Update reservation status
   const updateReservationStatus = async (id: string, status: 'Menunggu' | 'Dalam Proses' | 'Selesai' | 'Batal') => {
     try {
-      if (!supabase) {
-        toast.error('Database not configured')
-        throw new Error('Supabase not configured')
-      }
-
       const { error } = await supabase
         .from('reservations')
         .update({ status })
@@ -85,11 +68,6 @@ export function useReservationData() {
   // Delete reservation
   const deleteReservation = async (id: string) => {
     try {
-      if (!supabase) {
-        toast.error('Database not configured')
-        throw new Error('Supabase not configured')
-      }
-
       const { error } = await supabase
         .from('reservations')
         .delete()

@@ -10,13 +10,6 @@ export function usePurchaseData() {
   // Load purchases from Supabase
   const loadPurchases = async () => {
     try {
-      if (!supabase) {
-        console.log('Supabase not configured, using empty purchases')
-        setPurchases([])
-        setLoading(false)
-        return
-      }
-
       const { data, error } = await supabase
         .from('purchases')
         .select('*')
@@ -36,11 +29,6 @@ export function usePurchaseData() {
   // Save purchase to Supabase
   const savePurchase = async (purchase: Omit<Purchase, 'created_at'>) => {
     try {
-      if (!supabase) {
-        toast.error('Database not configured')
-        throw new Error('Supabase not configured')
-      }
-
       const { data, error } = await supabase
         .from('purchases')
         .upsert(purchase)
@@ -61,11 +49,6 @@ export function usePurchaseData() {
   // Update purchase status
   const updatePurchaseStatus = async (id: string, status: 'Diproses' | 'Selesai' | 'Dibatalkan') => {
     try {
-      if (!supabase) {
-        toast.error('Database not configured')
-        throw new Error('Supabase not configured')
-      }
-
       const { error } = await supabase
         .from('purchases')
         .update({ status })
@@ -85,11 +68,6 @@ export function usePurchaseData() {
   // Delete purchase
   const deletePurchase = async (id: string) => {
     try {
-      if (!supabase) {
-        toast.error('Database not configured')
-        throw new Error('Supabase not configured')
-      }
-
       const { error } = await supabase
         .from('purchases')
         .delete()

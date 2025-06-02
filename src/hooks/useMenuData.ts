@@ -10,14 +10,6 @@ export function useMenuData() {
   // Load menu items from Supabase
   const loadMenuItems = async () => {
     try {
-      // If Supabase is not configured, use default data
-      if (!supabase) {
-        console.log('Supabase not configured, using default menu items')
-        setMenuItems(getDefaultMenuItems())
-        setLoading(false)
-        return
-      }
-
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
@@ -28,8 +20,7 @@ export function useMenuData() {
       setMenuItems(data || [])
     } catch (error) {
       console.error('Error loading menu items:', error)
-      // Fallback to default data if no database entries
-      setMenuItems(getDefaultMenuItems())
+      setMenuItems([])
     } finally {
       setLoading(false)
     }
@@ -38,11 +29,6 @@ export function useMenuData() {
   // Save menu item to Supabase
   const saveMenuItem = async (item: Omit<MenuItem, 'created_at' | 'updated_at'>) => {
     try {
-      if (!supabase) {
-        toast.error('Database not configured')
-        throw new Error('Supabase not configured')
-      }
-
       const { data, error } = await supabase
         .from('menu_items')
         .upsert(item)
@@ -63,11 +49,6 @@ export function useMenuData() {
   // Delete menu item from Supabase
   const deleteMenuItem = async (id: string) => {
     try {
-      if (!supabase) {
-        toast.error('Database not configured')
-        throw new Error('Supabase not configured')
-      }
-
       const { error } = await supabase
         .from('menu_items')
         .delete()
@@ -87,11 +68,6 @@ export function useMenuData() {
   // Upload image to Supabase storage
   const uploadImage = async (file: File): Promise<string> => {
     try {
-      if (!supabase) {
-        toast.error('Database not configured')
-        throw new Error('Supabase not configured')
-      }
-
       const fileExt = file.name.split('.').pop()
       const fileName = `${Math.random()}.${fileExt}`
       const filePath = `menu-images/${fileName}`
@@ -126,15 +102,4 @@ export function useMenuData() {
     uploadImage,
     refreshData: loadMenuItems
   }
-}
-
-// Default menu items as fallback
-function getDefaultMenuItems(): MenuItem[] {
-  return [
-    { id: '1', name: 'Ice Kopi Susu', price: 22000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '2', name: 'Ice Matcha Espresso', price: 30000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '3', name: 'Ice Coffee Shake', price: 25000, category: 'kopi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '17', name: 'Original Beef Bowl', price: 40000, category: 'makanan', description: 'Slice beef premium dimasak dengan soy sauce ditambah dengan telur mata sapi', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' },
-    { id: '11', name: 'Pisang Coklat', price: 10000, category: 'cemilan', image: '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png' }
-  ]
 }
