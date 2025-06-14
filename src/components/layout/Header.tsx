@@ -28,11 +28,6 @@ export function Header() {
               </Link>
             </li>
             <li>
-              <Link to="/menu" className="text-[#d4462d] hover:underline">
-                Menu
-              </Link>
-            </li>
-            <li>
               <Link to="/reservation" className="text-[#d4462d] hover:underline">
                 Reservation
               </Link>
