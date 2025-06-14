@@ -21,12 +21,9 @@ export default function Index() {
             "Kamu Obsesi Paling Indah dari Hati"
           </p>
           
-          <div className="flex justify-center gap-4 mt-8">
+          <div className="flex justify-center mt-8">
             <Link to="/reservation" className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full">
               RESERVASI MEJA
-            </Link>
-            <Link to="/menu" className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full">
-              MENU
             </Link>
           </div>
         </section>
