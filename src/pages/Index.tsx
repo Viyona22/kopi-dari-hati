@@ -58,18 +58,18 @@ export default function Index() {
           </div>
         </section>
 
-        {/* Featured Menu Section */}
+        {/* Dynamic Menu Section - shows menu from database or welcome message */}
         <section className="mb-16">
-          <h2 className="text-xl font-bold text-[#d4462d] text-center mb-8">
-            MENU FAVORIT
-          </h2>
-          
           {loading ? (
-            <div className="text-center py-8 text-[#d4462d]">
-              Memuat menu...
+            <div className="text-center py-8">
+              <h2 className="text-xl font-bold text-[#d4462d] mb-4">Memuat Menu...</h2>
+              <div className="text-[#d4462d]">Mohon tunggu sebentar</div>
             </div>
           ) : menuItems.length > 0 ? (
             <>
+              <h2 className="text-xl font-bold text-[#d4462d] text-center mb-8">
+                MENU FAVORIT
+              </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {menuItems.slice(0, 3).map((item) => (
                   <div key={item.id} className="bg-[rgba(227,167,107,0.24)] p-6 rounded-[50px] text-center">
@@ -91,18 +91,24 @@ export default function Index() {
             </>
           ) : (
             <div className="text-center py-16">
-              <div className="bg-[rgba(227,167,107,0.24)] p-8 rounded-[50px] max-w-md mx-auto">
-                <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <span className="text-gray-400 text-3xl">🍽️</span>
+              <div className="bg-[rgba(227,167,107,0.24)] p-8 rounded-[50px] max-w-lg mx-auto">
+                <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-6 flex items-center justify-center">
+                  <span className="text-gray-400 text-4xl">☕</span>
                 </div>
-                <h3 className="text-xl font-bold text-[#d4462d] mb-4">Menu Sedang Dipersiapkan</h3>
-                <p className="text-[#d4462d] mb-6">
-                  Menu favorit kami sedang dipersiapkan dan akan segera tersedia. 
-                  Silakan kembali lagi nanti untuk melihat pilihan menu terbaru kami!
+                <h2 className="text-2xl font-bold text-[#d4462d] mb-4">Selamat Datang!</h2>
+                <p className="text-[#d4462d] mb-6 leading-relaxed">
+                  Menu kami sedang dipersiapkan dengan penuh cinta. 
+                  Admin sedang menambahkan pilihan menu terbaik untuk Anda. 
+                  Silakan kembali lagi nanti atau hubungi kami untuk informasi lebih lanjut!
                 </p>
-                <Link to="/menu" className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full inline-block">
-                  CEK MENU TERBARU
-                </Link>
+                <div className="space-y-3">
+                  <Link to="/menu" className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full inline-block mr-4">
+                    CEK MENU
+                  </Link>
+                  <Link to="/reservation" className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full inline-block">
+                    RESERVASI
+                  </Link>
+                </div>
               </div>
             </div>
           )}

@@ -4,14 +4,14 @@ import { supabase } from '@/integrations/supabase/client'
 // Re-export the supabase client
 export { supabase }
 
-// Database types
+// Database types - updated to match actual database schema
 export interface MenuItem {
   id: string
   name: string
   price: number
-  category: 'kopi' | 'cemilan' | 'makanan'
+  category: string // Changed from union type to string to match database
   description?: string
-  image: string
+  image: string | null // Changed to match database schema
   created_at?: string
   updated_at?: string
 }
@@ -22,7 +22,7 @@ export interface Reservation {
   date: string
   guests: number
   time: string
-  status: 'Menunggu' | 'Dalam Proses' | 'Selesai' | 'Batal'
+  status: string // Changed from union type to string to match database
   created_at?: string
 }
 
@@ -31,6 +31,6 @@ export interface Purchase {
   date: string
   product: string
   total: string
-  status: 'Diproses' | 'Selesai' | 'Dibatalkan'
+  status: string // Changed from union type to string to match database
   created_at?: string
 }
