@@ -3,6 +3,7 @@ import React from 'react';
 import { Layout } from '../components/layout/Layout';
 import { Link } from 'react-router-dom';
 import { ServiceCard } from '../components/ui/ServiceCard';
+import { MenuCarousel } from '../components/home/MenuCarousel';
 
 export default function Index() {
   return (
@@ -27,6 +28,9 @@ export default function Index() {
             </Link>
           </div>
         </section>
+
+        {/* Menu Carousel Section */}
+        <MenuCarousel />
 
         {/* Services Section */}
         <section className="mb-16">
