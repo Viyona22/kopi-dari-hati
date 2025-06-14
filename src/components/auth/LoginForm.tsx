@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Gear } from 'lucide-react';
 import { ForgotPasswordDialog } from './ForgotPasswordDialog';
 import { SignUpDialog } from './SignUpDialog';
 
@@ -38,11 +39,18 @@ export function LoginForm() {
   };
 
   return (
-    <div className="bg-[rgba(217,217,217,1)] p-8 rounded-lg">
+    <div className="bg-[rgba(217,217,217,1)] p-8 rounded-lg relative">
+      {/* Admin indicator in top right corner */}
+      <div className="absolute top-4 right-4 flex items-center gap-2 text-[#df5353] text-sm">
+        <Gear className="w-4 h-4" />
+        <span className="font-semibold">Admin Panel</span>
+      </div>
+
       <div className="flex flex-col items-center mb-8">
         <img src="https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/840f8e820466cd972c9227284f37450b12ef6ca7?placeholderIfAbsent=true" className="w-44 rounded-full mb-6" alt="Login" />
-        <h2 className="text-2xl font-black text-[#df5353] mb-2">Login</h2>
-        <p className="text-xl text-[#df5353]">Sign in to your account</p>
+        <h2 className="text-2xl font-black text-[#df5353] mb-2">Login Admin</h2>
+        <p className="text-lg text-[#df5353] mb-2">Masuk ke panel admin</p>
+        <p className="text-sm text-[#df5353] opacity-75 text-center">Hanya untuk staff/admin restoran</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -50,7 +58,7 @@ export function LoginForm() {
           <input
             {...register('email')}
             type="email"
-            placeholder="Email"
+            placeholder="Email Admin"
             className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
           />
           {errors.email && (
@@ -62,7 +70,7 @@ export function LoginForm() {
           <input
             {...register('password')}
             type="password"
-            placeholder="Password"
+            placeholder="Password Admin"
             className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
           />
           {errors.password && (
@@ -76,7 +84,7 @@ export function LoginForm() {
           type="submit"
           className="w-full bg-[#df5353] text-white font-bold py-3 px-4 rounded hover:bg-[#c84444] transition-colors"
         >
-          Log in
+          Masuk sebagai Admin
         </button>
 
         <p className="text-[#df5353] text-center mt-4">
