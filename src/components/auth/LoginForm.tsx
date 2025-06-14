@@ -1,9 +1,12 @@
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { ForgotPasswordDialog } from './ForgotPasswordDialog';
+import { SignUpDialog } from './SignUpDialog';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -67,7 +70,7 @@ export function LoginForm() {
           )}
         </div>
 
-        <p className="text-[#df5353] text-base cursor-pointer">Forget password?</p>
+        <ForgotPasswordDialog />
 
         <button
           type="submit"
@@ -77,7 +80,7 @@ export function LoginForm() {
         </button>
 
         <p className="text-[#df5353] text-center mt-4">
-          Don't have an account? <span className="cursor-pointer">Sign up</span>
+          Don't have an account? <SignUpDialog />
         </p>
       </form>
     </div>
