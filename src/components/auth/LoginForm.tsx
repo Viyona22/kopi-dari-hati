@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Settings } from 'lucide-react';
 import { ForgotPasswordDialog } from './ForgotPasswordDialog';
 import { SignUpDialog } from './SignUpDialog';
 
@@ -40,12 +39,6 @@ export function LoginForm() {
 
   return (
     <div className="bg-[rgba(217,217,217,1)] p-8 rounded-lg relative">
-      {/* Admin indicator in top right corner */}
-      <div className="absolute top-4 right-4 flex items-center gap-2 text-[#df5353] text-sm">
-        <Settings className="w-4 h-4" />
-        <span className="font-semibold">Admin Panel</span>
-      </div>
-
       <div className="flex flex-col items-center mb-8">
         <img src="https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/840f8e820466cd972c9227284f37450b12ef6ca7?placeholderIfAbsent=true" className="w-44 rounded-full mb-6" alt="Login" />
         <h2 className="text-2xl font-black text-[#df5353] mb-2">Login Admin</h2>
