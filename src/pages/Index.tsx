@@ -3,8 +3,11 @@ import React from 'react';
 import { Layout } from '../components/layout/Layout';
 import { Link } from 'react-router-dom';
 import { ServiceCard } from '../components/ui/ServiceCard';
+import { useMenuData } from '../hooks/useMenuData';
 
 export default function Index() {
+  const { menuItems, loading } = useMenuData();
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -60,28 +63,49 @@ export default function Index() {
           <h2 className="text-xl font-bold text-[#d4462d] text-center mb-8">
             MENU FAVORIT
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-[rgba(227,167,107,0.24)] p-6 rounded-[50px] text-center">
-              <img src="https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/6268e9cdd7ad0a1667165091747429dfd0387b0a?placeholderIfAbsent=true" alt="Ice Kopi Susu" className="w-full aspect-square object-cover rounded-full mb-4" />
-              <h3 className="text-xl font-bold text-[#d4462d] mb-2">Ice Kopi Susu</h3>
-              <p className="text-xl font-bold text-[#d4462d]">Rp. 22.000</p>
+          
+          {loading ? (
+            <div className="text-center py-8 text-[#d4462d]">
+              Memuat menu...
             </div>
-            <div className="bg-[rgba(227,167,107,0.24)] p-6 rounded-[50px] text-center">
-              <img src="https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/f10dffeee6529562c0b99f546f2f4c96cdb9ba5e?placeholderIfAbsent=true" alt="Pisang Coklat" className="w-full aspect-square object-cover rounded-full mb-4" />
-              <h3 className="text-xl font-bold text-[#d4462d] mb-2">Pisang Coklat</h3>
-              <p className="text-xl font-bold text-[#d4462d]">Rp. 10.000</p>
+          ) : menuItems.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {menuItems.slice(0, 3).map((item) => (
+                  <div key={item.id} className="bg-[rgba(227,167,107,0.24)] p-6 rounded-[50px] text-center">
+                    <img 
+                      src={item.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png'} 
+                      alt={item.name} 
+                      className="w-full aspect-square object-cover rounded-full mb-4" 
+                    />
+                    <h3 className="text-xl font-bold text-[#d4462d] mb-2">{item.name}</h3>
+                    <p className="text-xl font-bold text-[#d4462d]">Rp. {item.price.toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-8 text-center">
+                <Link to="/menu" className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full inline-block">
+                  LIHAT SEMUA MENU
+                </Link>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-16">
+              <div className="bg-[rgba(227,167,107,0.24)] p-8 rounded-[50px] max-w-md mx-auto">
+                <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <span className="text-gray-400 text-3xl">🍽️</span>
+                </div>
+                <h3 className="text-xl font-bold text-[#d4462d] mb-4">Menu Sedang Dipersiapkan</h3>
+                <p className="text-[#d4462d] mb-6">
+                  Menu favorit kami sedang dipersiapkan dan akan segera tersedia. 
+                  Silakan kembali lagi nanti untuk melihat pilihan menu terbaru kami!
+                </p>
+                <Link to="/menu" className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full inline-block">
+                  CEK MENU TERBARU
+                </Link>
+              </div>
             </div>
-            <div className="bg-[rgba(227,167,107,0.24)] p-6 rounded-[50px] text-center">
-              <img src="https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/a87859f430c9606fa779269879c949fad50d3f35?placeholderIfAbsent=true" alt="Original Beef Bowl" className="w-full aspect-square object-cover rounded-full mb-4" />
-              <h3 className="text-xl font-bold text-[#d4462d] mb-2">Original Beef Bowl</h3>
-              <p className="text-xl font-bold text-[#d4462d]">Rp. 40.000</p>
-            </div>
-          </div>
-          <div className="mt-8 text-center">
-            <Link to="/menu" className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full inline-block">
-              LIHAT SEMUA MENU
-            </Link>
-          </div>
+          )}
         </section>
 
         {/* Atmosphere Section */}
