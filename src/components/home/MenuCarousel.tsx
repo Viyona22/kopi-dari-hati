@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import { useMenuData } from '@/hooks/useMenuData';
 import Autoplay from 'embla-carousel-autoplay';
 
@@ -47,9 +47,8 @@ export function MenuCarousel() {
                     />
                     <h3 className="text-lg font-bold text-[#d4462d] mb-2">{item.name}</h3>
                     {item.description && (
-                      <p className="text-[#d4462d] text-sm mb-2 line-clamp-2">{item.description}</p>
+                      <p className="text-[#d4462d] text-sm line-clamp-2">{item.description}</p>
                     )}
-                    <p className="text-lg font-bold text-[#d4462d]">Rp. {item.price.toLocaleString()}</p>
                   </div>
                 </div>
               </CarouselItem>
