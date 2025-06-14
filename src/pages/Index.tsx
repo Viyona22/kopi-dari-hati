@@ -3,11 +3,8 @@ import React from 'react';
 import { Layout } from '../components/layout/Layout';
 import { Link } from 'react-router-dom';
 import { ServiceCard } from '../components/ui/ServiceCard';
-import { useMenuData } from '../hooks/useMenuData';
 
 export default function Index() {
-  const { menuItems, loading } = useMenuData();
-
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -56,70 +53,6 @@ export default function Index() {
               description="Dapatkan konfirmasi reservasi langsung ke email Anda untuk kenyamanan Anda."
             />
           </div>
-        </section>
-
-        {/* Dynamic Menu Section - shows menu from database */}
-        <section className="mb-16">
-          {loading ? (
-            <div className="text-center py-8">
-              <h2 className="text-xl font-bold text-[#d4462d] mb-4">Memuat Menu...</h2>
-              <div className="text-[#d4462d]">Mohon tunggu sebentar</div>
-            </div>
-          ) : menuItems.length > 0 ? (
-            <>
-              <h2 className="text-xl font-bold text-[#d4462d] text-center mb-8">
-                MENU FAVORIT KAMI
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {menuItems.slice(0, 6).map((item) => (
-                  <div key={item.id} className="bg-[rgba(227,167,107,0.24)] p-6 rounded-[50px] text-center">
-                    <img 
-                      src={item.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png'} 
-                      alt={item.name} 
-                      className="w-full aspect-square object-cover rounded-full mb-4" 
-                    />
-                    <h3 className="text-lg font-bold text-[#d4462d] mb-2">{item.name}</h3>
-                    {item.description && (
-                      <p className="text-sm text-[#d4462d] mb-2 opacity-80">{item.description}</p>
-                    )}
-                    <p className="text-lg font-bold text-[#d4462d]">Rp. {item.price.toLocaleString()}</p>
-                    <div className="mt-3">
-                      <span className="bg-[rgba(227,167,107,0.5)] text-[#d4462d] text-xs px-3 py-1 rounded-full">
-                        {item.category}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-8 text-center">
-                <Link to="/menu" className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-8 py-3 rounded-full inline-block hover:bg-[rgba(227,167,107,0.4)] transition-colors">
-                  LIHAT SEMUA MENU
-                </Link>
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-16">
-              <div className="bg-[rgba(227,167,107,0.24)] p-8 rounded-[50px] max-w-lg mx-auto">
-                <div className="w-24 h-24 bg-[rgba(227,167,107,0.5)] rounded-full mx-auto mb-6 flex items-center justify-center">
-                  <span className="text-[#d4462d] text-4xl">☕</span>
-                </div>
-                <h2 className="text-2xl font-bold text-[#d4462d] mb-4">Menu Sedang Dipersiapkan</h2>
-                <p className="text-[#d4462d] mb-6 leading-relaxed">
-                  Menu kami sedang dipersiapkan dengan penuh cinta. 
-                  Admin sedang menambahkan pilihan menu terbaik untuk Anda. 
-                  Silakan kembali lagi nanti atau hubungi kami untuk informasi lebih lanjut!
-                </p>
-                <div className="space-y-3">
-                  <Link to="/menu" className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full inline-block mr-4 hover:bg-[rgba(227,167,107,0.4)] transition-colors">
-                    CEK MENU
-                  </Link>
-                  <Link to="/reservation" className="bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold px-6 py-2 rounded-full inline-block hover:bg-[rgba(227,167,107,0.4)] transition-colors">
-                    RESERVASI
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
         </section>
 
         {/* Atmosphere Section */}
