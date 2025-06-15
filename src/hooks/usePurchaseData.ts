@@ -17,7 +17,15 @@ export function usePurchaseData() {
 
       if (error) throw error
       
-      setPurchases(data || [])
+      // Transform the data to match our Purchase interface
+      const transformedData = data?.map(purchase => ({
+        ...purchase,
+        order_items: Array.isArray(purchase.order_items) 
+          ? purchase.order_items 
+          : JSON.parse(purchase.order_items as string)
+      })) || []
+      
+      setPurchases(transformedData)
     } catch (error) {
       console.error('Error loading purchases:', error)
       setPurchases([])
