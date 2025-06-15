@@ -28,9 +28,20 @@ export interface Reservation {
 
 export interface Purchase {
   id: string
-  date: string
-  product: string
-  total: string
-  status: string // Changed from union type to string to match database
+  customer_name: string
+  customer_phone: string
+  customer_address?: string
+  order_items: any[] // Array of order items with details
+  total_amount: number // Total in rupiah
+  payment_method: string
+  status: string
   created_at?: string
+}
+
+export interface Category {
+  id: string
+  name: string
+  display_name: string
+  created_at?: string
+  updated_at?: string
 }

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Trash } from 'lucide-react';
+import { Search, Trash, Eye } from 'lucide-react';
 import { usePurchaseData } from '@/hooks/usePurchaseData';
 import {
   Select,
@@ -21,6 +21,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 export function PurchaseTable() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,8 +52,9 @@ export function PurchaseTable() {
   };
 
   const filteredPurchases = purchases.filter(purchase =>
-    purchase.product?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    purchase.date?.includes(searchTerm)
+    purchase.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    purchase.customer_phone?.includes(searchTerm) ||
+    purchase.payment_method?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusColor = (status: string) => {
@@ -59,6 +67,33 @@ export function PurchaseTable() {
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return `Rp ${amount.toLocaleString('id-ID')}`;
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString('id-ID', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    switch (method) {
+      case 'cod':
+        return 'Cash on Delivery';
+      case 'qris':
+        return 'QRIS';
+      case 'transfer':
+        return 'Transfer Bank';
+      default:
+        return method;
     }
   };
 
@@ -102,9 +137,11 @@ export function PurchaseTable() {
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50">
-                <TableHead className="font-semibold text-gray-700">Tanggal</TableHead>
-                <TableHead className="font-semibold text-gray-700">Produk</TableHead>
+                <TableHead className="font-semibold text-gray-700">Waktu</TableHead>
+                <TableHead className="font-semibold text-gray-700">Pelanggan</TableHead>
+                <TableHead className="font-semibold text-gray-700">Kontak</TableHead>
                 <TableHead className="font-semibold text-gray-700">Total</TableHead>
+                <TableHead className="font-semibold text-gray-700">Pembayaran</TableHead>
                 <TableHead className="font-semibold text-gray-700">Status</TableHead>
                 <TableHead className="font-semibold text-gray-700">Aksi</TableHead>
               </TableRow>
@@ -112,9 +149,24 @@ export function PurchaseTable() {
             <TableBody>
               {filteredPurchases.map((purchase) => (
                 <TableRow key={purchase.id} className="hover:bg-gray-50">
-                  <TableCell>{purchase.date}</TableCell>
-                  <TableCell>{purchase.product}</TableCell>
-                  <TableCell className="font-medium">{purchase.total}</TableCell>
+                  <TableCell className="text-sm">
+                    {purchase.created_at ? formatDate(purchase.created_at) : '-'}
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{purchase.customer_name}</div>
+                      {purchase.customer_address && (
+                        <div className="text-sm text-gray-500">{purchase.customer_address}</div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">{purchase.customer_phone}</TableCell>
+                  <TableCell className="font-medium">
+                    {formatCurrency(purchase.total_amount)}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {getPaymentMethodLabel(purchase.payment_method)}
+                  </TableCell>
                   <TableCell>
                     <Select
                       value={purchase.status}
@@ -145,13 +197,98 @@ export function PurchaseTable() {
                     </Select>
                   </TableCell>
                   <TableCell>
-                    <Button 
-                      size="sm" 
-                      variant="destructive" 
-                      onClick={() => handleDelete(purchase.id)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                          <DialogHeader>
+                            <DialogTitle>Detail Pembelian</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Nama Pelanggan</label>
+                                <p className="font-medium">{purchase.customer_name}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Nomor Telepon</label>
+                                <p className="font-medium">{purchase.customer_phone}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Alamat Pengantaran</label>
+                                <p className="font-medium">{purchase.customer_address || 'Tidak ada alamat'}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Metode Pembayaran</label>
+                                <p className="font-medium">{getPaymentMethodLabel(purchase.payment_method)}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Waktu Pemesanan</label>
+                                <p className="font-medium">
+                                  {purchase.created_at ? formatDate(purchase.created_at) : '-'}
+                                </p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Status</label>
+                                <Badge className={getStatusColor(purchase.status)}>
+                                  {purchase.status}
+                                </Badge>
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label className="text-sm font-medium text-gray-600 mb-2 block">Items Pembelian</label>
+                              <div className="border rounded-lg overflow-hidden">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Item</TableHead>
+                                      <TableHead>Qty</TableHead>
+                                      <TableHead>Harga</TableHead>
+                                      <TableHead>Subtotal</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {purchase.order_items.map((item: any, index: number) => (
+                                      <TableRow key={index}>
+                                        <TableCell>
+                                          <div className="flex items-center gap-2">
+                                            {item.image && (
+                                              <img src={item.image} alt={item.name} className="w-8 h-8 object-cover rounded" />
+                                            )}
+                                            {item.name}
+                                          </div>
+                                        </TableCell>
+                                        <TableCell>{item.quantity}</TableCell>
+                                        <TableCell>{formatCurrency(item.price)}</TableCell>
+                                        <TableCell>{formatCurrency(item.price * item.quantity)}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                              <div className="mt-4 text-right">
+                                <div className="text-lg font-bold">
+                                  Total: {formatCurrency(purchase.total_amount)}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      
+                      <Button 
+                        size="sm" 
+                        variant="destructive" 
+                        onClick={() => handleDelete(purchase.id)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

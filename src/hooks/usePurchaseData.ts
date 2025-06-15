@@ -27,11 +27,11 @@ export function usePurchaseData() {
   }
 
   // Save purchase to Supabase
-  const savePurchase = async (purchase: Omit<Purchase, 'created_at'>) => {
+  const savePurchase = async (purchase: Omit<Purchase, 'id' | 'created_at'>) => {
     try {
       const { data, error } = await supabase
         .from('purchases')
-        .upsert(purchase)
+        .insert(purchase)
         .select()
 
       if (error) throw error

@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { usePurchaseData } from '@/hooks/usePurchaseData';
 
 import {
   Form,
@@ -33,6 +34,7 @@ type CheckoutFormValues = z.infer<typeof checkoutFormSchema>;
 
 export default function Checkout() {
   const { items, getTotalPrice, clearCart } = useCart();
+  const { savePurchase } = usePurchaseData();
   const totalPrice = getTotalPrice();
   const navigate = useNavigate();
   
@@ -46,23 +48,52 @@ export default function Checkout() {
     },
   });
 
-  function onSubmit(data: CheckoutFormValues) {
-    // In a real application, we would process the order here
-    console.log("Order data:", { orderItems: items, customerInfo: data, totalPrice });
+  async function onSubmit(data: CheckoutFormValues) {
+    try {
+      // Prepare order data for database
+      const orderData = {
+        customer_name: data.name,
+        customer_phone: data.phone,
+        customer_address: data.address || null,
+        order_items: items.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image
+        })),
+        total_amount: totalPrice,
+        payment_method: data.paymentMethod,
+        status: 'Diproses' as const
+      };
 
-    // Display success message
-    toast({
-      title: "Pesanan Berhasil",
-      description: "Pesanan Anda telah diterima. Terima kasih!",
-    });
+      console.log("Saving order to database:", orderData);
 
-    // Clear cart
-    clearCart();
-    
-    // Redirect to home page
-    setTimeout(() => {
-      navigate('/');
-    }, 2000);
+      // Save to database
+      await savePurchase(orderData);
+
+      // Display success message
+      toast({
+        title: "Pesanan Berhasil",
+        description: "Pesanan Anda telah diterima dan disimpan. Terima kasih!",
+      });
+
+      // Clear cart
+      clearCart();
+      
+      // Redirect to home page
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+      
+    } catch (error) {
+      console.error("Error saving order:", error);
+      toast({
+        title: "Terjadi Kesalahan",
+        description: "Gagal menyimpan pesanan. Silakan coba lagi.",
+        variant: "destructive"
+      });
+    }
   }
 
   // Redirect if cart is empty
