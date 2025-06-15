@@ -3,23 +3,23 @@ import React, { useState } from 'react';
 import { Layout } from '../components/layout/Layout';
 import { MenuSection } from '../components/menu/MenuSection';
 import { useMenuData } from '../hooks/useMenuData';
+import { useCategoryData } from '../hooks/useCategoryData';
 
 export default function Menu() {
   const { menuItems, loading } = useMenuData();
+  const { categories, loading: categoriesLoading } = useCategoryData();
   const [activeCategory, setActiveCategory] = useState<string>('all');
 
-  const categories = [
-    { id: 'all', name: 'SEMUA MENU' },
-    { id: 'kopi', name: 'KOPI SPECIAL' },
-    { id: 'cemilan', name: 'CEMILAN FAVORITE' },
-    { id: 'makanan', name: 'MAKAN KENYANG' }
+  const allCategories = [
+    { id: 'all', name: 'all', display_name: 'SEMUA MENU' },
+    ...categories
   ];
 
   const filteredItems = activeCategory === 'all' 
     ? menuItems 
     : menuItems.filter(item => item.category === activeCategory);
 
-  if (loading) {
+  if (loading || categoriesLoading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
@@ -52,7 +52,7 @@ export default function Menu() {
         {/* Category Filter */}
         <div className="flex justify-center mb-8">
           <div className="bg-[rgba(227,167,107,0.24)] rounded-full p-2">
-            {categories.map((category) => (
+            {allCategories.map((category) => (
               <button
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
@@ -62,7 +62,7 @@ export default function Menu() {
                     : 'text-[#d4462d] hover:bg-[rgba(212,70,45,0.1)]'
                 }`}
               >
-                {category.name}
+                {category.display_name.toUpperCase()}
               </button>
             ))}
           </div>

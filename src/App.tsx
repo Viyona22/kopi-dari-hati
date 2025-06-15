@@ -15,6 +15,7 @@ import Admin from "./pages/Admin";
 import AdminReservations from "./pages/AdminReservations";
 import AdminPurchases from "./pages/AdminPurchases";
 import AdminMenu from "./pages/AdminMenu";
+import AdminCategories from "./pages/AdminCategories";
 import AdminSettings from "./pages/AdminSettings";
 import NotFound from "./pages/NotFound";
 
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/admin/reservations" element={<AdminReservations />} />
             <Route path="/admin/purchases" element={<AdminPurchases />} />
             <Route path="/admin/menu" element={<AdminMenu />} />
+            <Route path="/admin/categories" element={<AdminCategories />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Edit, Trash, Save, X, ImageIcon } from 'lucide-react';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { useMenuData } from '@/hooks/useMenuData';
+import { useCategoryData } from '@/hooks/useCategoryData';
 import { MenuItem } from '@/lib/supabase';
 import { toast } from 'sonner';
 import {
@@ -35,6 +36,7 @@ import {
 
 export function MenuManagement() {
   const { menuItems, loading, saveMenuItem, deleteMenuItem, uploadImage } = useMenuData();
+  const { categories, loading: categoriesLoading } = useCategoryData();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
@@ -42,7 +44,7 @@ export function MenuManagement() {
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({
     name: '',
     price: 0,
-    category: 'kopi',
+    category: categories[0]?.id || 'kopi',
     description: '',
     image: ''
   });
@@ -53,22 +55,22 @@ export function MenuManagement() {
     return matchesSearch && matchesCategory;
   });
 
-  const getCategoryLabel = (category: string) => {
-    switch (category) {
-      case 'kopi': return 'Kopi Special';
-      case 'cemilan': return 'Cemilan Favorite';
-      case 'makanan': return 'Makan Kenyang';
-      default: return category;
-    }
+  const getCategoryLabel = (categoryId: string) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    return category ? category.display_name : categoryId;
   };
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'kopi': return 'bg-blue-100 text-blue-800';
-      case 'cemilan': return 'bg-green-100 text-green-800';
-      case 'makanan': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const getCategoryColor = (categoryId: string) => {
+    const colors = [
+      'bg-blue-100 text-blue-800',
+      'bg-green-100 text-green-800',
+      'bg-orange-100 text-orange-800',
+      'bg-purple-100 text-purple-800',
+      'bg-pink-100 text-pink-800',
+      'bg-yellow-100 text-yellow-800'
+    ];
+    const categoryIndex = categories.findIndex(cat => cat.id === categoryId);
+    return colors[categoryIndex % colors.length] || 'bg-gray-100 text-gray-800';
   };
 
   const handleEdit = (item: MenuItem) => {
@@ -112,13 +114,19 @@ export function MenuManagement() {
         id,
         name: newItem.name!,
         price: newItem.price!,
-        category: newItem.category as 'kopi' | 'cemilan' | 'makanan',
+        category: newItem.category!,
         description: newItem.description || undefined,
         image: newItem.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png'
       };
       
       await saveMenuItem(itemToAdd);
-      setNewItem({ name: '', price: 0, category: 'kopi', description: '', image: '' });
+      setNewItem({ 
+        name: '', 
+        price: 0, 
+        category: categories[0]?.id || 'kopi', 
+        description: '', 
+        image: '' 
+      });
       setIsAddDialogOpen(false);
     } catch (error) {
       console.error('Error adding item:', error);
@@ -152,7 +160,7 @@ export function MenuManagement() {
     }
   };
 
-  if (loading) {
+  if (loading || categoriesLoading) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -187,9 +195,11 @@ export function MenuManagement() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua Kategori</SelectItem>
-              <SelectItem value="kopi">Kopi Special</SelectItem>
-              <SelectItem value="cemilan">Cemilan Favorite</SelectItem>
-              <SelectItem value="makanan">Makan Kenyang</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.display_name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -223,14 +233,16 @@ export function MenuManagement() {
                 </div>
                 <div>
                   <label className="text-sm font-medium">Kategori</label>
-                  <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value as 'kopi' | 'cemilan' | 'makanan' })}>
+                  <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="kopi">Kopi Special</SelectItem>
-                      <SelectItem value="cemilan">Cemilan Favorite</SelectItem>
-                      <SelectItem value="makanan">Makan Kenyang</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.display_name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -314,14 +326,16 @@ export function MenuManagement() {
                 </TableCell>
                 <TableCell>
                   {editingItem?.id === item.id ? (
-                    <Select value={editingItem.category} onValueChange={(value) => setEditingItem({ ...editingItem, category: value as 'kopi' | 'cemilan' | 'makanan' })}>
+                    <Select value={editingItem.category} onValueChange={(value) => setEditingItem({ ...editingItem, category: value })}>
                       <SelectTrigger className="w-40">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="kopi">Kopi Special</SelectItem>
-                        <SelectItem value="cemilan">Cemilan Favorite</SelectItem>
-                        <SelectItem value="makanan">Makan Kenyang</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.display_name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   ) : (

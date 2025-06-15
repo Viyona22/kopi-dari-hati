@@ -1,94 +1,76 @@
 
-import React from 'react';
-import { useLocation } from 'react-router-dom';
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarHeader,
-} from "@/components/ui/sidebar";
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  ShoppingBag, 
-  UtensilsCrossed, 
-  Settings 
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+} from "@/components/ui/sidebar"
+import { BarChart3, Users, ShoppingBag, UtensilsCrossed, Settings, Tag } from "lucide-react"
+import { Link, useLocation } from "react-router-dom"
 
 const menuItems = [
   {
     title: "Dashboard",
-    icon: LayoutDashboard,
     url: "/admin",
+    icon: BarChart3,
   },
   {
-    title: "Data Reservasi",
-    icon: Calendar,
+    title: "Reservasi",
     url: "/admin/reservations",
+    icon: Users,
   },
   {
-    title: "Riwayat Pembelian",
-    icon: ShoppingBag,
+    title: "Pembelian",
     url: "/admin/purchases",
+    icon: ShoppingBag,
   },
   {
-    title: "Menu Makanan & Minuman",
-    icon: UtensilsCrossed,
+    title: "Menu",
     url: "/admin/menu",
+    icon: UtensilsCrossed,
+  },
+  {
+    title: "Kategori",
+    url: "/admin/categories",
+    icon: Tag,
   },
   {
     title: "Pengaturan",
-    icon: Settings,
     url: "/admin/settings",
+    icon: Settings,
   },
-];
+]
 
 export function AdminSidebar() {
-  const location = useLocation();
+  const location = useLocation()
 
   return (
-    <Sidebar className="border-r bg-white">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center justify-center">
-          <img 
-            src="/lovable-uploads/0298f58b-fd27-486e-bc13-a6f9309b1103.png"
-            alt="Kopi dari Hati Bangka"
-            className="h-12 w-auto object-contain"
-          />
-        </div>
-      </SidebarHeader>
+    <Sidebar>
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupLabel className="text-[#d4462d] font-bold">
+            Admin Panel
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => {
-                const isActive = location.pathname === item.url;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild className="w-full justify-start">
-                      <a 
-                        href={item.url} 
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg",
-                          isActive && "bg-gray-200 text-gray-900 font-medium"
-                        )}
-                      >
-                        <item.icon className="h-5 w-5" />
-                        <span className="text-sm">{item.title}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={location.pathname === item.url}>
+                    <Link to={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
-  );
+  )
 }
