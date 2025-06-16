@@ -23,6 +23,9 @@ export interface Reservation {
   guests: number
   time: string
   status: string // Changed from union type to string to match database
+  phone?: string
+  email?: string
+  special_requests?: string
   created_at?: string
 }
 
