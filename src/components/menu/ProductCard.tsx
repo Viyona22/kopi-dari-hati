@@ -1,7 +1,12 @@
 
 import React, { useState } from 'react';
 import { OrderCounter } from './OrderCounter';
-import { Star, Heart } from 'lucide-react';
+import { ReviewDialog } from './ReviewDialog';
+import { ReviewsList } from './ReviewsList';
+import { Star, Heart, MessageCircle } from 'lucide-react';
+import { useReviewData } from '@/hooks/useReviewData';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 interface ProductCardProps {
   image: string;
@@ -13,9 +18,15 @@ interface ProductCardProps {
   stockLeft?: number;
 }
 
-export function ProductCard({ image, name, price, description, badge, rating = 4.5, stockLeft }: ProductCardProps) {
+export function ProductCard({ image, name, price, description, badge, stockLeft }: ProductCardProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   const id = name.toLowerCase().replace(/\s+/g, '-');
+  
+  // Use real review data
+  const { averageRating, totalReviews, refreshReviews } = useReviewData(id);
+  
+  // Use real rating if available, otherwise fall back to prop
+  const displayRating = totalReviews > 0 ? averageRating : 4.5;
 
   const renderStars = (rating: number) => {
     const stars = [];
@@ -82,12 +93,19 @@ export function ProductCard({ image, name, price, description, badge, rating = 4
       <div className="p-3">
         <h3 className="text-base font-bold text-gray-800 mb-1.5 line-clamp-1">{name}</h3>
         
-        {/* Rating */}
+        {/* Rating with Review Count */}
         <div className="flex items-center gap-1.5 mb-2">
           <div className="flex items-center gap-0.5">
-            {renderStars(rating)}
+            {renderStars(displayRating)}
           </div>
-          <span className="text-xs text-gray-600 font-medium">{rating}</span>
+          <span className="text-xs text-gray-600 font-medium">
+            {displayRating.toFixed(1)}
+          </span>
+          {totalReviews > 0 && (
+            <span className="text-xs text-gray-500">
+              ({totalReviews} review{totalReviews !== 1 ? 's' : ''})
+            </span>
+          )}
         </div>
         
         {/* Description */}
@@ -110,6 +128,45 @@ export function ProductCard({ image, name, price, description, badge, rating = 4
           <span className="text-lg font-bold text-[#d4462d]">
             Rp {price.toLocaleString('id-ID')}
           </span>
+        </div>
+        
+        {/* Review Buttons */}
+        <div className="flex gap-2 mb-3">
+          <ReviewDialog 
+            menuItemId={id}
+            menuItemName={name}
+            onReviewSubmitted={refreshReviews}
+          >
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 text-xs border-[#d4462d] text-[#d4462d] hover:bg-[#d4462d] hover:text-white"
+            >
+              <Star className="w-3 h-3 mr-1" />
+              Beri Rating
+            </Button>
+          </ReviewDialog>
+          
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1 text-xs border-gray-300 text-gray-600 hover:bg-gray-50"
+              >
+                <MessageCircle className="w-3 h-3 mr-1" />
+                Lihat Review
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-[#d4462d]">
+                  Review untuk {name}
+                </DialogTitle>
+              </DialogHeader>
+              <ReviewsList menuItemId={id} />
+            </DialogContent>
+          </Dialog>
         </div>
         
         {/* Order Counter */}
