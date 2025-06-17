@@ -32,7 +32,10 @@ export function ReservationForm() {
         date: data.date,
         guests: data.guests,
         time: data.time,
-        status: 'Menunggu' as const
+        status: 'Menunggu' as const,
+        phone: data.phone,
+        email: data.email,
+        special_requests: data.specialRequests || null
       };
 
       await saveReservation(reservation);
