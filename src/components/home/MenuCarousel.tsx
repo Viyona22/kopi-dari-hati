@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import { useMenuData } from '@/hooks/useMenuData';
+import { Star, Heart } from 'lucide-react';
 import Autoplay from 'embla-carousel-autoplay';
 
 export function MenuCarousel() {
@@ -10,6 +11,26 @@ export function MenuCarousel() {
   const plugin = React.useRef(
     Autoplay({ delay: 3000, stopOnInteraction: true })
   );
+
+  const renderStars = (rating: number) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(
+        <Star key={i} className="w-3 h-3 fill-[#d4462d] text-[#d4462d]" />
+      );
+    }
+    
+    const emptyStars = 5 - fullStars;
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(
+        <Star key={`empty-${i}`} className="w-3 h-3 text-gray-300" />
+      );
+    }
+    
+    return stars;
+  };
 
   if (loading) {
     return (
@@ -36,19 +57,47 @@ export function MenuCarousel() {
           onMouseLeave={plugin.current.reset}
         >
           <CarouselContent>
-            {menuItems.map((item) => (
+            {menuItems.map((item, index) => (
               <CarouselItem key={item.id} className="md:basis-1/2 lg:basis-1/3">
                 <div className="p-2">
-                  <div className="bg-[rgba(227,167,107,0.24)] p-6 rounded-[30px] text-center">
-                    <img 
-                      src={item.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png'} 
-                      alt={item.name} 
-                      className="w-full h-48 object-cover rounded-full mb-4" 
-                    />
-                    <h3 className="text-lg font-bold text-[#d4462d] mb-2">{item.name}</h3>
-                    {item.description && (
-                      <p className="text-[#d4462d] text-sm line-clamp-2">{item.description}</p>
-                    )}
+                  <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100">
+                    <div className="relative">
+                      <img 
+                        src={item.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png'} 
+                        alt={item.name} 
+                        className="w-full h-40 object-cover" 
+                      />
+                      
+                      {/* Badge for first few items */}
+                      {index < 3 && (
+                        <div className="absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-bold text-white bg-[#d4462d]">
+                          SPESIAL
+                        </div>
+                      )}
+                      
+                      {/* Heart icon */}
+                      <button className="absolute top-2 right-2 p-1 rounded-full bg-white/80 hover:bg-white transition-colors">
+                        <Heart className="w-4 h-4 text-gray-600 hover:text-red-500" />
+                      </button>
+                    </div>
+                    
+                    <div className="p-4">
+                      <h3 className="text-base font-bold text-gray-800 mb-2">{item.name}</h3>
+                      
+                      {/* Rating */}
+                      <div className="flex items-center gap-1 mb-2">
+                        {renderStars(4.5)}
+                        <span className="text-xs text-gray-600 ml-1">4.5</span>
+                      </div>
+                      
+                      {item.description && (
+                        <p className="text-[#d4462d] text-xs line-clamp-2 mb-2">{item.description}</p>
+                      )}
+                      
+                      <p className="text-lg font-bold text-[#d4462d]">
+                        Rp {item.price.toLocaleString('id-ID')}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </CarouselItem>
