@@ -55,7 +55,7 @@ export function AdminSidebar() {
         <div className="flex items-center space-x-3">
           <div className="flex-shrink-0">
             <img 
-              src="/lovable-uploads/62d3ac6a-c98d-422a-967e-a7656fee38a2.png" 
+              src="https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/840f8e820466cd972c9227284f37450b12ef6ca7?placeholderIfAbsent=true" 
               alt="Kopi dari Hati Logo" 
               className="w-12 h-12 rounded-full object-cover shadow-sm"
             />
