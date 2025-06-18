@@ -25,7 +25,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ item }: ProductCardProps) {
-  const { addToCart } = useCart();
+  const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [customerEmail, setCustomerEmail] = useState('');
   const [showEmailInput, setShowEmailInput] = useState(false);
@@ -50,7 +50,7 @@ export function ProductCard({ item }: ProductCardProps) {
 
   const handleAddToCart = () => {
     for (let i = 0; i < quantity; i++) {
-      addToCart(item);
+      addItem(item);
     }
     setQuantity(1);
     toast.success(`${item.name} ditambahkan ke keranjang!`);
@@ -238,7 +238,15 @@ export function ProductCard({ item }: ProductCardProps) {
 
           {/* Reviews section */}
           <div className="flex gap-2">
-            <ReviewDialog menuItem={item} />
+            <ReviewDialog 
+              menuItemId={item.id} 
+              menuItemName={item.name}
+            >
+              <Button variant="outline" size="sm" className="flex-1">
+                <Star className="h-4 w-4 mr-1" />
+                Beri Rating
+              </Button>
+            </ReviewDialog>
             
             <Dialog>
               <DialogTrigger asChild>

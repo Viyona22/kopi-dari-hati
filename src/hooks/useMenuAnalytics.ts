@@ -77,10 +77,19 @@ export function useMenuAnalytics() {
   // Update total orders manually (for integration with purchase system)
   const updateOrderCount = async (menuItemId: string, increment: number = 1) => {
     try {
+      // First get current count
+      const { data: currentData } = await supabase
+        .from('menu_analytics')
+        .select('total_orders')
+        .eq('menu_item_id', menuItemId)
+        .single()
+
+      const currentCount = currentData?.total_orders || 0
+      
       const { error } = await supabase
         .from('menu_analytics')
         .update({
-          total_orders: supabase.raw(`total_orders + ${increment}`),
+          total_orders: currentCount + increment,
           last_updated: new Date().toISOString()
         })
         .eq('menu_item_id', menuItemId)
