@@ -17,7 +17,13 @@ export function useMenuData() {
 
       if (error) throw error
       
-      setMenuItems(data || [])
+      // Cast the data to MenuItem[] to handle the badge_type typing
+      const typedData = (data || []).map(item => ({
+        ...item,
+        badge_type: item.badge_type as 'terlaris' | 'baru' | null
+      })) as MenuItem[]
+      
+      setMenuItems(typedData)
     } catch (error) {
       console.error('Error loading menu items:', error)
       setMenuItems([])
