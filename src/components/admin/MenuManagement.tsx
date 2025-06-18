@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Edit, Trash, Save, X, ImageIcon } from 'lucide-react';
+import { Search, Plus, Edit, Trash, Save, X, ImageIcon, Star, Heart, AlertTriangle } from 'lucide-react';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { useMenuData } from '@/hooks/useMenuData';
 import { useCategoryData } from '@/hooks/useCategoryData';
+import { useMenuAnalytics } from '@/hooks/useMenuAnalytics';
 import { MenuItem } from '@/lib/supabase';
 import { toast } from 'sonner';
 import {
@@ -33,10 +34,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 
 export function MenuManagement() {
   const { menuItems, loading, saveMenuItem, deleteMenuItem, uploadImage } = useMenuData();
   const { categories, loading: categoriesLoading } = useCategoryData();
+  const { analytics } = useMenuAnalytics();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
@@ -46,7 +49,11 @@ export function MenuManagement() {
     price: 0,
     category: categories[0]?.id || 'kopi',
     description: '',
-    image: ''
+    image: '',
+    badge_type: null,
+    stock_quantity: 50,
+    is_featured: false,
+    sort_order: 0
   });
 
   const filteredMenuItems = menuItems.filter(item => {
@@ -71,6 +78,31 @@ export function MenuManagement() {
     ];
     const categoryIndex = categories.findIndex(cat => cat.id === categoryId);
     return colors[categoryIndex % colors.length] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getBadgeColor = (badgeType: string | null) => {
+    switch (badgeType) {
+      case 'terlaris':
+        return 'bg-red-100 text-red-800';
+      case 'baru':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStockStatus = (quantity: number) => {
+    if (quantity === 0) return { color: 'text-red-600', label: 'Habis' };
+    if (quantity <= 5) return { color: 'text-orange-600', label: 'Stok Rendah' };
+    return { color: 'text-green-600', label: 'Tersedia' };
+  };
+
+  const getMenuAnalytics = (menuItemId: string) => {
+    return analytics.find(a => a.menu_item_id === menuItemId) || {
+      total_favorites: 0,
+      average_rating: 0,
+      total_reviews: 0
+    };
   };
 
   const handleEdit = (item: MenuItem) => {
@@ -116,7 +148,11 @@ export function MenuManagement() {
         price: newItem.price!,
         category: newItem.category!,
         description: newItem.description || undefined,
-        image: newItem.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png'
+        image: newItem.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png',
+        badge_type: newItem.badge_type || null,
+        stock_quantity: newItem.stock_quantity || 50,
+        is_featured: newItem.is_featured || false,
+        sort_order: newItem.sort_order || 0
       };
       
       await saveMenuItem(itemToAdd);
@@ -125,7 +161,11 @@ export function MenuManagement() {
         price: 0, 
         category: categories[0]?.id || 'kopi', 
         description: '', 
-        image: '' 
+        image: '',
+        badge_type: null,
+        stock_quantity: 50,
+        is_featured: false,
+        sort_order: 0
       });
       setIsAddDialogOpen(false);
     } catch (error) {
@@ -247,6 +287,35 @@ export function MenuManagement() {
                   </Select>
                 </div>
                 <div>
+                  <label className="text-sm font-medium">Lencana</label>
+                  <Select value={newItem.badge_type || 'none'} onValueChange={(value) => setNewItem({ ...newItem, badge_type: value === 'none' ? null : value as 'terlaris' | 'baru' })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Tanpa Lencana</SelectItem>
+                      <SelectItem value="terlaris">Terlaris</SelectItem>
+                      <SelectItem value="baru">Baru</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Stok</label>
+                  <Input
+                    type="number"
+                    value={newItem.stock_quantity}
+                    onChange={(e) => setNewItem({ ...newItem, stock_quantity: parseInt(e.target.value) || 0 })}
+                    placeholder="Jumlah stok"
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={newItem.is_featured || false}
+                    onCheckedChange={(checked) => setNewItem({ ...newItem, is_featured: checked })}
+                  />
+                  <label className="text-sm font-medium">Menu Unggulan</label>
+                </div>
+                <div>
                   <label className="text-sm font-medium">Deskripsi (opsional)</label>
                   <Textarea
                     value={newItem.description}
@@ -283,130 +352,188 @@ export function MenuManagement() {
               <TableHead className="font-semibold text-gray-700">Nama Menu</TableHead>
               <TableHead className="font-semibold text-gray-700">Kategori</TableHead>
               <TableHead className="font-semibold text-gray-700">Harga</TableHead>
-              <TableHead className="font-semibold text-gray-700">Deskripsi</TableHead>
+              <TableHead className="font-semibold text-gray-700">Lencana</TableHead>
+              <TableHead className="font-semibold text-gray-700">Stok</TableHead>
+              <TableHead className="font-semibold text-gray-700">Analytics</TableHead>
               <TableHead className="font-semibold text-gray-700">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredMenuItems.map((item) => (
-              <TableRow key={item.id} className="hover:bg-gray-50">
-                <TableCell>
-                  {editingItem?.id === item.id ? (
-                    <ImageUpload
-                      currentImage={editingItem.image}
-                      onImageChange={(file) => handleImageChange(editingItem.id, file)}
-                      onImageRemove={() => handleImageRemove(editingItem.id)}
-                    />
-                  ) : (
-                    <div className="relative group">
-                      {item.image ? (
-                        <img 
-                          src={item.image} 
-                          alt={item.name}
-                          className="w-16 h-16 object-cover rounded-md"
-                        />
+            {filteredMenuItems.map((item) => {
+              const itemAnalytics = getMenuAnalytics(item.id);
+              const stockStatus = getStockStatus(item.stock_quantity || 0);
+              
+              return (
+                <TableRow key={item.id} className="hover:bg-gray-50">
+                  <TableCell>
+                    {editingItem?.id === item.id ? (
+                      <ImageUpload
+                        currentImage={editingItem.image}
+                        onImageChange={(file) => handleImageChange(editingItem.id, file)}
+                        onImageRemove={() => handleImageRemove(editingItem.id)}
+                      />
+                    ) : (
+                      <div className="relative">
+                        {item.image ? (
+                          <img 
+                            src={item.image} 
+                            alt={item.name}
+                            className="w-16 h-16 object-cover rounded-md"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
+                            <ImageIcon className="h-6 w-6 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingItem?.id === item.id ? (
+                      <Input
+                        value={editingItem.name}
+                        onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                        className="font-medium"
+                      />
+                    ) : (
+                      <div>
+                        <span className="font-medium">{item.name}</span>
+                        {item.is_featured && (
+                          <Badge className="ml-2 bg-purple-100 text-purple-800">Unggulan</Badge>
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingItem?.id === item.id ? (
+                      <Select value={editingItem.category} onValueChange={(value) => setEditingItem({ ...editingItem, category: value })}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.display_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge className={getCategoryColor(item.category)}>
+                        {getCategoryLabel(item.category)}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingItem?.id === item.id ? (
+                      <Input
+                        type="number"
+                        value={editingItem.price}
+                        onChange={(e) => setEditingItem({ ...editingItem, price: parseInt(e.target.value) || 0 })}
+                      />
+                    ) : (
+                      `Rp ${item.price.toLocaleString('id-ID')}`
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingItem?.id === item.id ? (
+                      <Select 
+                        value={editingItem.badge_type || 'none'} 
+                        onValueChange={(value) => setEditingItem({ 
+                          ...editingItem, 
+                          badge_type: value === 'none' ? null : value as 'terlaris' | 'baru' 
+                        })}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Tanpa Lencana</SelectItem>
+                          <SelectItem value="terlaris">Terlaris</SelectItem>
+                          <SelectItem value="baru">Baru</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      item.badge_type ? (
+                        <Badge className={getBadgeColor(item.badge_type)}>
+                          {item.badge_type === 'terlaris' ? 'Terlaris' : 'Baru'}
+                        </Badge>
                       ) : (
-                        <div className="w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
-                          <ImageIcon className="h-6 w-6 text-gray-400" />
-                        </div>
-                      )}
+                        <span className="text-gray-400">-</span>
+                      )
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingItem?.id === item.id ? (
+                      <Input
+                        type="number"
+                        value={editingItem.stock_quantity}
+                        onChange={(e) => setEditingItem({ ...editingItem, stock_quantity: parseInt(e.target.value) || 0 })}
+                        className="w-20"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className={stockStatus.color}>
+                          {item.stock_quantity || 0}
+                        </span>
+                        {(item.stock_quantity || 0) <= 5 && (
+                          <AlertTriangle className="h-4 w-4 text-orange-500" />
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="flex items-center gap-1">
+                        <Heart className="h-3 w-3 text-red-500" />
+                        <span>{itemAnalytics.total_favorites}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3 text-yellow-500" />
+                        <span>{itemAnalytics.average_rating.toFixed(1)}</span>
+                      </div>
                     </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingItem?.id === item.id ? (
-                    <Input
-                      value={editingItem.name}
-                      onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
-                      className="font-medium"
-                    />
-                  ) : (
-                    <span className="font-medium">{item.name}</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingItem?.id === item.id ? (
-                    <Select value={editingItem.category} onValueChange={(value) => setEditingItem({ ...editingItem, category: value })}>
-                      <SelectTrigger className="w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.display_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge className={getCategoryColor(item.category)}>
-                      {getCategoryLabel(item.category)}
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingItem?.id === item.id ? (
-                    <Input
-                      type="number"
-                      value={editingItem.price}
-                      onChange={(e) => setEditingItem({ ...editingItem, price: parseInt(e.target.value) || 0 })}
-                    />
-                  ) : (
-                    `Rp ${item.price.toLocaleString('id-ID')}`
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingItem?.id === item.id ? (
-                    <Textarea
-                      value={editingItem.description || ''}
-                      onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
-                      className="min-h-16"
-                    />
-                  ) : (
-                    <span className="text-sm text-gray-600">
-                      {item.description || '-'}
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {editingItem?.id === item.id ? (
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        onClick={handleSaveEdit}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <Save className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={handleCancelEdit}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => handleEdit(item)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive" 
-                        onClick={() => handleDelete(item.id)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                  <TableCell>
+                    {editingItem?.id === item.id ? (
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          onClick={handleSaveEdit}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <Save className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={handleCancelEdit}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleEdit(item)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="destructive" 
+                          onClick={() => handleDelete(item.id)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
         

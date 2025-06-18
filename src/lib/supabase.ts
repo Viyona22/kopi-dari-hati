@@ -9,9 +9,13 @@ export interface MenuItem {
   id: string
   name: string
   price: number
-  category: string // Changed from union type to string to match database
+  category: string
   description?: string
-  image: string | null // Changed to match database schema
+  image: string | null
+  badge_type?: 'terlaris' | 'baru' | null
+  stock_quantity?: number
+  is_featured?: boolean
+  sort_order?: number
   created_at?: string
   updated_at?: string
 }
@@ -22,7 +26,7 @@ export interface Reservation {
   date: string
   guests: number
   time: string
-  status: string // Changed from union type to string to match database
+  status: string
   phone?: string
   email?: string
   special_requests?: string
@@ -34,8 +38,8 @@ export interface Purchase {
   customer_name: string
   customer_phone: string
   customer_address?: string
-  order_items: any[] // Array of order items with details
-  total_amount: number // Total in rupiah
+  order_items: any[]
+  total_amount: number
   payment_method: string
   status: string
   created_at?: string
@@ -47,4 +51,21 @@ export interface Category {
   display_name: string
   created_at?: string
   updated_at?: string
+}
+
+export interface Favorite {
+  id: string
+  customer_email: string
+  menu_item_id: string
+  created_at?: string
+}
+
+export interface MenuAnalytics {
+  id: string
+  menu_item_id: string
+  total_favorites: number
+  total_orders: number
+  average_rating: number
+  total_reviews: number
+  last_updated?: string
 }

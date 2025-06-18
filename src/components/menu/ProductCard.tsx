@@ -1,177 +1,294 @@
 
 import React, { useState } from 'react';
-import { OrderCounter } from './OrderCounter';
-import { ReviewDialog } from './ReviewDialog';
-import { ReviewsList } from './ReviewsList';
-import { Star, Heart, MessageCircle } from 'lucide-react';
-import { useReviewData } from '@/hooks/useReviewData';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Star, Heart, MessageSquare, AlertTriangle, Plus, Minus } from 'lucide-react';
+import { MenuItem } from '@/lib/supabase';
+import { useCart } from '@/context/CartContext';
+import { useFavoriteData } from '@/hooks/useFavoriteData';
+import { useMenuAnalytics } from '@/hooks/useMenuAnalytics';
+import { ReviewDialog } from '@/components/menu/ReviewDialog';
+import { ReviewsList } from '@/components/menu/ReviewsList';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 interface ProductCardProps {
-  image: string;
-  name: string;
-  price: number;
-  description?: string;
-  badge?: 'terlaris' | 'baru' | null;
-  rating?: number;
-  stockLeft?: number;
+  item: MenuItem;
 }
 
-export function ProductCard({ image, name, price, description, badge, stockLeft }: ProductCardProps) {
-  const [isFavorite, setIsFavorite] = useState(false);
-  const id = name.toLowerCase().replace(/\s+/g, '-');
+export function ProductCard({ item }: ProductCardProps) {
+  const { addToCart } = useCart();
+  const [quantity, setQuantity] = useState(1);
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [showEmailInput, setShowEmailInput] = useState(false);
   
-  // Use real review data
-  const { averageRating, totalReviews, refreshReviews } = useReviewData(id);
-  
-  // Use real rating if available, otherwise fall back to prop
-  const displayRating = totalReviews > 0 ? averageRating : 4.5;
+  // Get customer email from localStorage if available
+  React.useEffect(() => {
+    const savedEmail = localStorage.getItem('customerEmail');
+    if (savedEmail) {
+      setCustomerEmail(savedEmail);
+    }
+  }, []);
+
+  const { addToFavorites, removeFromFavorites, isFavorited } = useFavoriteData(customerEmail);
+  const { analytics } = useMenuAnalytics();
+
+  // Get analytics for this menu item
+  const menuAnalytics = analytics.find(a => a.menu_item_id === item.id) || {
+    total_favorites: 0,
+    average_rating: 0,
+    total_reviews: 0
+  };
+
+  const handleAddToCart = () => {
+    for (let i = 0; i < quantity; i++) {
+      addToCart(item);
+    }
+    setQuantity(1);
+    toast.success(`${item.name} ditambahkan ke keranjang!`);
+  };
+
+  const handleFavoriteClick = async () => {
+    if (!customerEmail) {
+      setShowEmailInput(true);
+      return;
+    }
+
+    if (isFavorited(item.id)) {
+      await removeFromFavorites(item.id, customerEmail);
+    } else {
+      await addToFavorites(item.id, customerEmail);
+    }
+  };
+
+  const handleEmailSubmit = async () => {
+    if (!customerEmail.includes('@')) {
+      toast.error('Email tidak valid');
+      return;
+    }
+    
+    localStorage.setItem('customerEmail', customerEmail);
+    setShowEmailInput(false);
+    await addToFavorites(item.id, customerEmail);
+  };
+
+  const getBadgeStyle = (badgeType: string) => {
+    switch (badgeType) {
+      case 'terlaris':
+        return 'bg-red-500 text-white';
+      case 'baru':
+        return 'bg-green-500 text-white';
+      default:
+        return 'bg-gray-500 text-white';
+    }
+  };
+
+  const stockQuantity = item.stock_quantity || 0;
+  const isLowStock = stockQuantity <= 5 && stockQuantity > 0;
+  const isOutOfStock = stockQuantity === 0;
 
   const renderStars = (rating: number) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-    
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(
-        <Star key={i} className="w-3 h-3 fill-[#d4462d] text-[#d4462d]" />
-      );
-    }
-    
-    if (hasHalfStar) {
-      stars.push(
-        <Star key="half" className="w-3 h-3 fill-[#d4462d] text-[#d4462d] opacity-50" />
-      );
-    }
-    
-    const emptyStars = 5 - Math.ceil(rating);
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(
-        <Star key={`empty-${i}`} className="w-3 h-3 text-gray-300" />
-      );
-    }
-    
-    return stars;
+    return Array.from({ length: 5 }, (_, index) => (
+      <Star
+        key={index}
+        className={`w-3 h-3 ${
+          index < Math.floor(rating)
+            ? 'fill-yellow-400 text-yellow-400'
+            : 'text-gray-300'
+        }`}
+      />
+    ));
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-100 max-w-sm mx-auto">
-      {/* Image Section with Badge and Favorite */}
-      <div className="relative">
-        <img 
-          src={image} 
-          alt={name} 
-          className="w-full h-36 object-cover" 
-        />
-        
-        {/* Badge */}
-        {badge && (
-          <div className={`absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-bold text-white ${
-            badge === 'terlaris' ? 'bg-[#d4462d]' : 'bg-orange-500'
-          }`}>
-            {badge === 'terlaris' ? 'TERLARIS' : 'BARU'}
-          </div>
-        )}
-        
-        {/* Favorite Button */}
-        <button
-          onClick={() => setIsFavorite(!isFavorite)}
-          className="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 hover:bg-white transition-colors shadow-sm"
-        >
-          <Heart 
-            className={`w-4 h-4 ${
-              isFavorite 
-                ? 'fill-red-500 text-red-500' 
-                : 'text-gray-600 hover:text-red-500'
-            }`} 
-          />
-        </button>
-      </div>
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow relative">
+      {/* Badge overlay */}
+      {item.badge_type && (
+        <div className="absolute top-2 left-2 z-10">
+          <Badge className={getBadgeStyle(item.badge_type)}>
+            {item.badge_type === 'terlaris' ? 'TERLARIS' : 'BARU'}
+          </Badge>
+        </div>
+      )}
 
-      {/* Content Section */}
-      <div className="p-3">
-        <h3 className="text-base font-bold text-gray-800 mb-1.5 line-clamp-1">{name}</h3>
-        
-        {/* Rating with Review Count */}
-        <div className="flex items-center gap-1.5 mb-2">
-          <div className="flex items-center gap-0.5">
-            {renderStars(displayRating)}
-          </div>
-          <span className="text-xs text-gray-600 font-medium">
-            {displayRating.toFixed(1)}
-          </span>
-          {totalReviews > 0 && (
-            <span className="text-xs text-gray-500">
-              ({totalReviews} review{totalReviews !== 1 ? 's' : ''})
-            </span>
-          )}
+      {/* Featured indicator */}
+      {item.is_featured && (
+        <div className="absolute top-2 right-2 z-10">
+          <Badge className="bg-purple-500 text-white">
+            UNGGULAN
+          </Badge>
         </div>
-        
-        {/* Description */}
-        {description && (
-          <p className="text-gray-600 text-xs mb-2 line-clamp-2">{description}</p>
-        )}
-        
-        {/* Stock Warning */}
-        {stockLeft && stockLeft <= 5 && (
-          <div className="flex items-center gap-1 mb-2">
-            <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[6px] border-l-transparent border-r-transparent border-b-orange-500"></div>
-            <span className="text-orange-600 text-xs font-medium">
-              Tersisa {stockLeft} porsi!
-            </span>
-          </div>
-        )}
-        
-        {/* Price */}
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-lg font-bold text-[#d4462d]">
-            Rp {price.toLocaleString('id-ID')}
-          </span>
-        </div>
-        
-        {/* Review Buttons */}
-        <div className="flex gap-2 mb-3">
-          <ReviewDialog 
-            menuItemId={id}
-            menuItemName={name}
-            onReviewSubmitted={refreshReviews}
-          >
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="flex-1 text-xs border-[#d4462d] text-[#d4462d] hover:bg-[#d4462d] hover:text-white"
-            >
-              <Star className="w-3 h-3 mr-1" />
-              Beri Rating
-            </Button>
-          </ReviewDialog>
+      )}
+
+      <CardHeader className="p-0">
+        <div className="relative">
+          <img
+            src={item.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png'}
+            alt={item.name}
+            className="w-full h-48 object-cover"
+          />
           
-          <Dialog>
-            <DialogTrigger asChild>
+          {/* Favorite button */}
+          <Button
+            size="sm"
+            variant="outline"
+            className="absolute bottom-2 right-2 bg-white/90 hover:bg-white"
+            onClick={handleFavoriteClick}
+          >
+            <Heart 
+              className={`h-4 w-4 ${
+                isFavorited(item.id) 
+                  ? 'fill-red-500 text-red-500' 
+                  : 'text-gray-400'
+              }`} 
+            />
+          </Button>
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-4">
+        <div className="space-y-3">
+          <div>
+            <h3 className="font-semibold text-lg text-gray-900">{item.name}</h3>
+            {item.description && (
+              <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+            )}
+          </div>
+
+          {/* Rating and favorites */}
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-1">
+              {renderStars(menuAnalytics.average_rating)}
+              <span className="text-gray-600 ml-1">
+                {menuAnalytics.average_rating > 0 
+                  ? `${menuAnalytics.average_rating.toFixed(1)} (${menuAnalytics.total_reviews})` 
+                  : 'Belum ada rating'
+                }
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-gray-500">
+              <Heart className="h-3 w-3" />
+              <span>{menuAnalytics.total_favorites} favorit</span>
+            </div>
+          </div>
+
+          {/* Stock indicator */}
+          <div className="flex items-center gap-2">
+            {isOutOfStock ? (
+              <Badge variant="destructive" className="flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Habis
+              </Badge>
+            ) : isLowStock ? (
+              <Badge variant="secondary" className="bg-orange-100 text-orange-800 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Tersisa {stockQuantity} porsi!
+              </Badge>
+            ) : (
+              <Badge className="bg-green-100 text-green-800">
+                Tersedia ({stockQuantity} porsi)
+              </Badge>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-xl font-bold text-[#d4462d]">
+              Rp {item.price.toLocaleString('id-ID')}
+            </span>
+          </div>
+
+          {/* Quantity selector */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                disabled={quantity <= 1}
+              >
+                <Minus className="h-3 w-3" />
+              </Button>
+              <span className="w-8 text-center">{quantity}</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setQuantity(quantity + 1)}
+                disabled={isOutOfStock || quantity >= stockQuantity}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
+            
+            <Button
+              onClick={handleAddToCart}
+              className="flex-1 bg-[#d4462d] hover:bg-[#b93e26]"
+              disabled={isOutOfStock}
+            >
+              {isOutOfStock ? 'Habis' : 'Tambah ke Keranjang'}
+            </Button>
+          </div>
+
+          {/* Reviews section */}
+          <div className="flex gap-2">
+            <ReviewDialog menuItem={item} />
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="flex-1">
+                  <MessageSquare className="h-4 w-4 mr-1" />
+                  Lihat Review ({menuAnalytics.total_reviews})
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Review untuk {item.name}</DialogTitle>
+                </DialogHeader>
+                <ReviewsList menuItemId={item.id} />
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      </CardContent>
+
+      {/* Email input dialog */}
+      <Dialog open={showEmailInput} onOpenChange={setShowEmailInput}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Masukkan Email</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Untuk menambahkan ke favorit, silakan masukkan email Anda
+            </p>
+            <Input
+              type="email"
+              placeholder="email@contoh.com"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <Button onClick={handleEmailSubmit} className="flex-1">
+                Simpan
+              </Button>
               <Button 
                 variant="outline" 
-                size="sm" 
-                className="flex-1 text-xs border-gray-300 text-gray-600 hover:bg-gray-50"
+                onClick={() => setShowEmailInput(false)}
+                className="flex-1"
               >
-                <MessageCircle className="w-3 h-3 mr-1" />
-                Lihat Review
+                Batal
               </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-[#d4462d]">
-                  Review untuk {name}
-                </DialogTitle>
-              </DialogHeader>
-              <ReviewsList menuItemId={id} />
-            </DialogContent>
-          </Dialog>
-        </div>
-        
-        {/* Order Counter */}
-        <OrderCounter id={id} name={name} price={price} image={image} />
-      </div>
-    </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }

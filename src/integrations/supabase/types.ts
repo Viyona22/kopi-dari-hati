@@ -33,35 +33,114 @@ export type Database = {
         }
         Relationships: []
       }
+      favorites: {
+        Row: {
+          created_at: string | null
+          customer_email: string
+          id: string
+          menu_item_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_email: string
+          id?: string
+          menu_item_id: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_email?: string
+          id?: string
+          menu_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_analytics: {
+        Row: {
+          average_rating: number | null
+          id: string
+          last_updated: string | null
+          menu_item_id: string
+          total_favorites: number | null
+          total_orders: number | null
+          total_reviews: number | null
+        }
+        Insert: {
+          average_rating?: number | null
+          id?: string
+          last_updated?: string | null
+          menu_item_id: string
+          total_favorites?: number | null
+          total_orders?: number | null
+          total_reviews?: number | null
+        }
+        Update: {
+          average_rating?: number | null
+          id?: string
+          last_updated?: string | null
+          menu_item_id?: string
+          total_favorites?: number | null
+          total_orders?: number | null
+          total_reviews?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_analytics_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: true
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_items: {
         Row: {
+          badge_type: string | null
           category: string
           created_at: string | null
           description: string | null
           id: string
           image: string | null
+          is_featured: boolean | null
           name: string
           price: number
+          sort_order: number | null
+          stock_quantity: number | null
           updated_at: string | null
         }
         Insert: {
+          badge_type?: string | null
           category: string
           created_at?: string | null
           description?: string | null
           id: string
           image?: string | null
+          is_featured?: boolean | null
           name: string
           price: number
+          sort_order?: number | null
+          stock_quantity?: number | null
           updated_at?: string | null
         }
         Update: {
+          badge_type?: string | null
           category?: string
           created_at?: string | null
           description?: string | null
           id?: string
           image?: string | null
+          is_featured?: boolean | null
           name?: string
           price?: number
+          sort_order?: number | null
+          stock_quantity?: number | null
           updated_at?: string | null
         }
         Relationships: [

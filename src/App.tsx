@@ -17,6 +17,7 @@ import AdminPurchases from "./pages/AdminPurchases";
 import AdminMenu from "./pages/AdminMenu";
 import AdminCategories from "./pages/AdminCategories";
 import AdminSettings from "./pages/AdminSettings";
+import AdminMenuAnalytics from "./pages/AdminMenuAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/admin/menu" element={<AdminMenu />} />
             <Route path="/admin/categories" element={<AdminCategories />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/menu-analytics" element={<AdminMenuAnalytics />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
