@@ -47,7 +47,7 @@ export function MenuManagement() {
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({
     name: '',
     price: 0,
-    category: categories[0]?.id || 'kopi',
+    category: '',
     description: '',
     image: '',
     badge_type: null,
@@ -55,6 +55,13 @@ export function MenuManagement() {
     is_featured: false,
     sort_order: 0
   });
+
+  // Initialize default category when categories are loaded
+  React.useEffect(() => {
+    if (categories.length > 0 && !newItem.category) {
+      setNewItem(prev => ({ ...prev, category: categories[0].id }));
+    }
+  }, [categories, newItem.category]);
 
   const filteredMenuItems = menuItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -135,19 +142,48 @@ export function MenuManagement() {
   };
 
   const handleAddItem = async () => {
-    if (!newItem.name || !newItem.price) {
-      toast.error('Nama dan harga menu wajib diisi');
+    console.log('Attempting to add item:', newItem);
+    
+    // Enhanced validation
+    if (!newItem.name?.trim()) {
+      toast.error('Nama menu wajib diisi');
+      return;
+    }
+    
+    if (!newItem.price || newItem.price <= 0) {
+      toast.error('Harga menu harus lebih dari 0');
+      return;
+    }
+    
+    if (!newItem.category) {
+      toast.error('Kategori menu wajib dipilih');
+      return;
+    }
+
+    // Verify category exists
+    const categoryExists = categories.find(cat => cat.id === newItem.category);
+    if (!categoryExists) {
+      toast.error('Kategori yang dipilih tidak valid');
       return;
     }
     
     try {
-      const id = Date.now().toString();
+      // Generate unique ID using crypto.randomUUID() if available, otherwise use timestamp with random
+      const generateId = () => {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+          return crypto.randomUUID();
+        }
+        return `menu_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      };
+
+      const id = generateId();
+      
       const itemToAdd: MenuItem = {
         id,
-        name: newItem.name!,
-        price: newItem.price!,
-        category: newItem.category!,
-        description: newItem.description || undefined,
+        name: newItem.name.trim(),
+        price: Number(newItem.price),
+        category: newItem.category,
+        description: newItem.description?.trim() || undefined,
         image: newItem.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png',
         badge_type: newItem.badge_type || null,
         stock_quantity: newItem.stock_quantity || 50,
@@ -155,11 +191,15 @@ export function MenuManagement() {
         sort_order: newItem.sort_order || 0
       };
       
+      console.log('Final item to save:', itemToAdd);
+      
       await saveMenuItem(itemToAdd);
+      
+      // Reset form
       setNewItem({ 
         name: '', 
         price: 0, 
-        category: categories[0]?.id || 'kopi', 
+        category: categories[0]?.id || '', 
         description: '', 
         image: '',
         badge_type: null,
@@ -168,8 +208,11 @@ export function MenuManagement() {
         sort_order: 0
       });
       setIsAddDialogOpen(false);
+      
+      toast.success('Menu berhasil ditambahkan!');
     } catch (error) {
       console.error('Error adding item:', error);
+      toast.error('Gagal menambahkan menu. Silakan coba lagi.');
     }
   };
 
@@ -257,7 +300,7 @@ export function MenuManagement() {
                 <div>
                   <label className="text-sm font-medium">Nama Menu</label>
                   <Input
-                    value={newItem.name}
+                    value={newItem.name || ''}
                     onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                     placeholder="Masukkan nama menu"
                   />
@@ -266,16 +309,19 @@ export function MenuManagement() {
                   <label className="text-sm font-medium">Harga</label>
                   <Input
                     type="number"
-                    value={newItem.price}
+                    value={newItem.price || ''}
                     onChange={(e) => setNewItem({ ...newItem, price: parseInt(e.target.value) || 0 })}
                     placeholder="Masukkan harga"
                   />
                 </div>
                 <div>
                   <label className="text-sm font-medium">Kategori</label>
-                  <Select value={newItem.category} onValueChange={(value) => setNewItem({ ...newItem, category: value })}>
+                  <Select 
+                    value={newItem.category || ''} 
+                    onValueChange={(value) => setNewItem({ ...newItem, category: value })}
+                  >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Pilih kategori" />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((category) => (
@@ -303,7 +349,7 @@ export function MenuManagement() {
                   <label className="text-sm font-medium">Stok</label>
                   <Input
                     type="number"
-                    value={newItem.stock_quantity}
+                    value={newItem.stock_quantity || ''}
                     onChange={(e) => setNewItem({ ...newItem, stock_quantity: parseInt(e.target.value) || 0 })}
                     placeholder="Jumlah stok"
                   />
@@ -318,7 +364,7 @@ export function MenuManagement() {
                 <div>
                   <label className="text-sm font-medium">Deskripsi (opsional)</label>
                   <Textarea
-                    value={newItem.description}
+                    value={newItem.description || ''}
                     onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                     placeholder="Masukkan deskripsi menu"
                   />
