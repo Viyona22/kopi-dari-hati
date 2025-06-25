@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -143,6 +142,7 @@ export function MenuManagement() {
 
   const handleAddItem = async () => {
     console.log('Attempting to add item:', newItem);
+    console.log('Available categories:', categories);
     
     // Enhanced validation
     if (!newItem.name?.trim()) {
@@ -163,12 +163,14 @@ export function MenuManagement() {
     // Verify category exists
     const categoryExists = categories.find(cat => cat.id === newItem.category);
     if (!categoryExists) {
-      toast.error('Kategori yang dipilih tidak valid');
+      console.error('Category not found:', newItem.category);
+      console.error('Available categories:', categories.map(c => ({ id: c.id, name: c.display_name })));
+      toast.error('Kategori yang dipilih tidak valid. Silakan refresh halaman dan coba lagi.');
       return;
     }
     
     try {
-      // Generate unique ID using crypto.randomUUID() if available, otherwise use timestamp with random
+      // Generate unique ID
       const generateId = () => {
         if (typeof crypto !== 'undefined' && crypto.randomUUID) {
           return crypto.randomUUID();
@@ -186,12 +188,13 @@ export function MenuManagement() {
         description: newItem.description?.trim() || undefined,
         image: newItem.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png',
         badge_type: newItem.badge_type || null,
-        stock_quantity: newItem.stock_quantity || 50,
-        is_featured: newItem.is_featured || false,
-        sort_order: newItem.sort_order || 0
+        stock_quantity: Number(newItem.stock_quantity) || 50,
+        is_featured: Boolean(newItem.is_featured) || false,
+        sort_order: Number(newItem.sort_order) || 0
       };
       
       console.log('Final item to save:', itemToAdd);
+      console.log('Category verification - Selected:', itemToAdd.category, 'Exists:', categoryExists);
       
       await saveMenuItem(itemToAdd);
       
@@ -212,7 +215,7 @@ export function MenuManagement() {
       toast.success('Menu berhasil ditambahkan!');
     } catch (error) {
       console.error('Error adding item:', error);
-      toast.error('Gagal menambahkan menu. Silakan coba lagi.');
+      // Error message already handled in saveMenuItem
     }
   };
 
@@ -318,7 +321,10 @@ export function MenuManagement() {
                   <label className="text-sm font-medium">Kategori</label>
                   <Select 
                     value={newItem.category || ''} 
-                    onValueChange={(value) => setNewItem({ ...newItem, category: value })}
+                    onValueChange={(value) => {
+                      console.log('Category selected:', value);
+                      setNewItem({ ...newItem, category: value });
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih kategori" />

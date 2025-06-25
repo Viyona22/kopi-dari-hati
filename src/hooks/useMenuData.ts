@@ -33,21 +33,56 @@ export function useMenuData() {
   }
 
   // Save menu item to Supabase
-  const saveMenuItem = async (item: Omit<MenuItem, 'created_at' | 'updated_at'>) => {
+  const saveMenuItem = async (item: MenuItem | Omit<MenuItem, 'created_at' | 'updated_at'>) => {
     try {
+      console.log('Attempting to save menu item:', item)
+      
+      // Prepare the item for database insertion
+      const itemToSave = {
+        id: item.id,
+        name: item.name,
+        price: Number(item.price),
+        category: item.category,
+        description: item.description || null,
+        image: item.image || null,
+        badge_type: item.badge_type || null,
+        stock_quantity: Number(item.stock_quantity) || 50,
+        is_featured: Boolean(item.is_featured) || false,
+        sort_order: Number(item.sort_order) || 0
+      }
+
+      console.log('Prepared item for database:', itemToSave)
+
       const { data, error } = await supabase
         .from('menu_items')
-        .upsert(item)
+        .upsert(itemToSave, { 
+          onConflict: 'id',
+          ignoreDuplicates: false 
+        })
         .select()
 
-      if (error) throw error
+      if (error) {
+        console.error('Database error:', error)
+        throw error
+      }
       
+      console.log('Successfully saved to database:', data)
       await loadMenuItems() // Refresh data
       toast.success('Menu berhasil disimpan!')
-      return data[0]
+      return data?.[0]
     } catch (error) {
       console.error('Error saving menu item:', error)
-      toast.error('Gagal menyimpan menu')
+      
+      // More specific error messages
+      if (error.message?.includes('violates check constraint')) {
+        toast.error('Data menu tidak valid. Periksa kategori yang dipilih.')
+      } else if (error.message?.includes('foreign key')) {
+        toast.error('Kategori yang dipilih tidak valid atau tidak ditemukan.')
+      } else if (error.message?.includes('duplicate key')) {
+        toast.error('Menu dengan ID tersebut sudah ada.')
+      } else {
+        toast.error(`Gagal menyimpan menu: ${error.message}`)
+      }
       throw error
     }
   }
