@@ -25,11 +25,11 @@ const Admin = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-50 via-white to-gray-50">
         <AdminSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <AdminHeader />
-          <main className="flex-1 p-6 bg-gray-50">
+          <main className="flex-1 p-6 bg-gradient-to-br from-gray-50/30 to-white">
             <div className="max-w-7xl mx-auto">
               <AdminDashboard />
             </div>
