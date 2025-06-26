@@ -57,8 +57,11 @@ export function MenuManagement() {
 
   // Initialize default category when categories are loaded
   React.useEffect(() => {
+    console.log('Categories loaded:', categories);
     if (categories.length > 0 && !newItem.category) {
-      setNewItem(prev => ({ ...prev, category: categories[0].id }));
+      const defaultCategory = categories[0].id;
+      console.log('Setting default category:', defaultCategory);
+      setNewItem(prev => ({ ...prev, category: defaultCategory }));
     }
   }, [categories, newItem.category]);
 
@@ -141,29 +144,39 @@ export function MenuManagement() {
   };
 
   const handleAddItem = async () => {
-    console.log('Attempting to add item:', newItem);
-    console.log('Available categories:', categories);
+    console.log('=== ADD ITEM DEBUG ===')
+    console.log('1. Form data:', newItem);
+    console.log('2. Available categories:', categories.map(c => ({ id: c.id, name: c.display_name })));
     
-    // Enhanced validation
+    // Enhanced validation with detailed logging
     if (!newItem.name?.trim()) {
+      console.error('Validation failed: Name is empty');
       toast.error('Nama menu wajib diisi');
       return;
     }
     
     if (!newItem.price || newItem.price <= 0) {
+      console.error('Validation failed: Invalid price:', newItem.price);
       toast.error('Harga menu harus lebih dari 0');
       return;
     }
     
-    if (!newItem.category) {
+    if (!newItem.category?.trim()) {
+      console.error('Validation failed: Category is empty');
       toast.error('Kategori menu wajib dipilih');
       return;
     }
 
     // Verify category exists
     const categoryExists = categories.find(cat => cat.id === newItem.category);
+    console.log('3. Category check:', {
+      selectedCategory: newItem.category,
+      categoryExists: categoryExists,
+      allCategories: categories
+    });
+    
     if (!categoryExists) {
-      console.error('Category not found:', newItem.category);
+      console.error('Category not found in categories list:', newItem.category);
       console.error('Available categories:', categories.map(c => ({ id: c.id, name: c.display_name })));
       toast.error('Kategori yang dipilih tidak valid. Silakan refresh halaman dan coba lagi.');
       return;
@@ -193,8 +206,8 @@ export function MenuManagement() {
         sort_order: Number(newItem.sort_order) || 0
       };
       
-      console.log('Final item to save:', itemToAdd);
-      console.log('Category verification - Selected:', itemToAdd.category, 'Exists:', categoryExists);
+      console.log('4. Final item to save:', itemToAdd);
+      console.log('5. Category verification - Selected:', itemToAdd.category, 'Exists:', categoryExists);
       
       await saveMenuItem(itemToAdd);
       
@@ -212,9 +225,9 @@ export function MenuManagement() {
       });
       setIsAddDialogOpen(false);
       
-      toast.success('Menu berhasil ditambahkan!');
+      console.log('6. Menu successfully added and form reset');
     } catch (error) {
-      console.error('Error adding item:', error);
+      console.error('Error in handleAddItem:', error);
       // Error message already handled in saveMenuItem
     }
   };
@@ -322,7 +335,9 @@ export function MenuManagement() {
                   <Select 
                     value={newItem.category || ''} 
                     onValueChange={(value) => {
-                      console.log('Category selected:', value);
+                      console.log('Category selected in dropdown:', value);
+                      const selectedCategory = categories.find(cat => cat.id === value);
+                      console.log('Selected category object:', selectedCategory);
                       setNewItem({ ...newItem, category: value });
                     }}
                   >
@@ -337,6 +352,10 @@ export function MenuManagement() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {/* Debug info */}
+                  <div className="text-xs text-gray-500 mt-1">
+                    Selected: {newItem.category || 'None'} | Available: {categories.length} categories
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Lencana</label>

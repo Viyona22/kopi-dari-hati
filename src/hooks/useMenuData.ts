@@ -35,15 +35,59 @@ export function useMenuData() {
   // Save menu item to Supabase
   const saveMenuItem = async (item: MenuItem | Omit<MenuItem, 'created_at' | 'updated_at'>) => {
     try {
-      console.log('Attempting to save menu item:', item)
+      console.log('=== MENU SAVE DEBUG ===')
+      console.log('1. Item to save:', item)
+      
+      // Validate required fields
+      if (!item.name?.trim()) {
+        console.error('Validation failed: Name is required')
+        toast.error('Nama menu wajib diisi')
+        throw new Error('Name is required')
+      }
+      
+      if (!item.price || item.price <= 0) {
+        console.error('Validation failed: Price must be greater than 0')
+        toast.error('Harga menu harus lebih dari 0')
+        throw new Error('Price must be greater than 0')
+      }
+      
+      if (!item.category?.trim()) {
+        console.error('Validation failed: Category is required')
+        toast.error('Kategori menu wajib dipilih')
+        throw new Error('Category is required')
+      }
+
+      console.log('2. Basic validation passed')
+
+      // Check if category exists in categories table
+      console.log('3. Checking if category exists:', item.category)
+      const { data: categoryCheck, error: categoryError } = await supabase
+        .from('categories')
+        .select('id, name, display_name')
+        .eq('id', item.category)
+        .single()
+
+      if (categoryError) {
+        console.error('Category check error:', categoryError)
+        toast.error('Kategori yang dipilih tidak valid atau tidak ditemukan.')
+        throw new Error(`Category validation failed: ${categoryError.message}`)
+      }
+
+      if (!categoryCheck) {
+        console.error('Category not found in database:', item.category)
+        toast.error('Kategori yang dipilih tidak ditemukan di database.')
+        throw new Error('Category not found')
+      }
+
+      console.log('4. Category validation passed:', categoryCheck)
       
       // Prepare the item for database insertion
       const itemToSave = {
         id: item.id,
-        name: item.name,
+        name: item.name.trim(),
         price: Number(item.price),
         category: item.category,
-        description: item.description || null,
+        description: item.description?.trim() || null,
         image: item.image || null,
         badge_type: item.badge_type || null,
         stock_quantity: Number(item.stock_quantity) || 50,
@@ -51,8 +95,9 @@ export function useMenuData() {
         sort_order: Number(item.sort_order) || 0
       }
 
-      console.log('Prepared item for database:', itemToSave)
+      console.log('5. Prepared item for database:', itemToSave)
 
+      // Save to database
       const { data, error } = await supabase
         .from('menu_items')
         .upsert(itemToSave, { 
@@ -62,26 +107,41 @@ export function useMenuData() {
         .select()
 
       if (error) {
-        console.error('Database error:', error)
+        console.error('Database save error:', error)
+        console.error('Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        
+        // More specific error messages
+        if (error.message?.includes('violates check constraint')) {
+          toast.error('Data menu tidak valid. Periksa kategori yang dipilih.')
+        } else if (error.message?.includes('foreign key')) {
+          toast.error('Kategori yang dipilih tidak valid atau tidak ditemukan.')
+        } else if (error.message?.includes('duplicate key')) {
+          toast.error('Menu dengan ID tersebut sudah ada.')
+        } else {
+          toast.error(`Gagal menyimpan menu: ${error.message}`)
+        }
         throw error
       }
       
-      console.log('Successfully saved to database:', data)
+      console.log('6. Successfully saved to database:', data)
       await loadMenuItems() // Refresh data
       toast.success('Menu berhasil disimpan!')
       return data?.[0]
     } catch (error) {
-      console.error('Error saving menu item:', error)
+      console.error('=== SAVE MENU ERROR ===', error)
       
-      // More specific error messages
-      if (error.message?.includes('violates check constraint')) {
-        toast.error('Data menu tidak valid. Periksa kategori yang dipilih.')
-      } else if (error.message?.includes('foreign key')) {
-        toast.error('Kategori yang dipilih tidak valid atau tidak ditemukan.')
-      } else if (error.message?.includes('duplicate key')) {
-        toast.error('Menu dengan ID tersebut sudah ada.')
-      } else {
-        toast.error(`Gagal menyimpan menu: ${error.message}`)
+      // If we haven't shown a toast error yet, show a generic one
+      if (!error.message?.includes('Name is required') && 
+          !error.message?.includes('Price must be greater than 0') &&
+          !error.message?.includes('Category is required') &&
+          !error.message?.includes('Category validation failed') &&
+          !error.message?.includes('Category not found')) {
+        toast.error('Gagal menambahkan menu. Silakan coba lagi.')
       }
       throw error
     }
