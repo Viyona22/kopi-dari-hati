@@ -24,6 +24,9 @@ export class ProfileService {
           console.log('Profile not found, creating new profile...');
           const { data: user } = await supabase.auth.getUser();
           if (user.user) {
+            const userRole = user.user.user_metadata?.role || 'customer';
+            console.log('Creating profile with role from metadata:', userRole);
+            
             const { data: newProfile, error: createError } = await supabase
               .from('profiles')
               .insert({
@@ -39,16 +42,17 @@ export class ProfileService {
               return null;
             }
 
-            // Get role from user metadata or assign default
-            const userRole = user.user.user_metadata?.role || 'customer';
-            console.log('Assigning role from metadata:', userRole);
-
-            await supabase
+            // Create user role
+            const { error: roleError } = await supabase
               .from('user_roles')
               .insert({
                 user_id: userId,
                 role: userRole
               });
+
+            if (roleError) {
+              console.error('Error creating user role:', roleError);
+            }
 
             profileData = newProfile;
           }
@@ -73,15 +77,19 @@ export class ProfileService {
           const { data: user } = await supabase.auth.getUser();
           const userRole = user.user?.user_metadata?.role || 'customer';
           
-          console.log('Assigning role:', userRole);
-          await supabase
+          console.log('Creating missing role:', userRole);
+          const { error: createRoleError } = await supabase
             .from('user_roles')
             .insert({
               user_id: userId,
               role: userRole
             });
           
-          // Set role from metadata or default
+          if (createRoleError) {
+            console.error('Error creating role:', createRoleError);
+          }
+          
+          // Return profile with role from metadata
           if (profileData) {
             return {
               id: profileData.id,

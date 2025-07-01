@@ -14,19 +14,40 @@ export class AuthService {
 
   static async signUp(email: string, password: string, fullName: string, role: 'admin' | 'customer' = 'customer') {
     console.log('Signing up user:', email, fullName, 'as role:', role);
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          role: role
-        },
-        emailRedirectTo: `${window.location.origin}/`
+    
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            role: role
+          },
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+      
+      console.log('Sign up result:', { data, error });
+      
+      // Check if signup was successful but user needs email confirmation
+      if (data?.user && !data.user.email_confirmed_at) {
+        console.log('User created but needs email confirmation');
+        return { 
+          data, 
+          error: null,
+          needsConfirmation: true
+        };
       }
-    });
-    console.log('Sign up result:', { data, error });
-    return { data, error };
+      
+      return { data, error };
+    } catch (signupError) {
+      console.error('Signup exception:', signupError);
+      return { 
+        data: null, 
+        error: signupError 
+      };
+    }
   }
 
   static async signOut() {
@@ -43,7 +64,6 @@ export class AuthService {
     return { error };
   }
 
-  // New method to resend confirmation email
   static async resendConfirmation(email: string) {
     console.log('Resending confirmation email for:', email);
     const { error } = await supabase.auth.resend({
@@ -54,5 +74,17 @@ export class AuthService {
       }
     });
     return { error };
+  }
+
+  // Method to check if user exists in auth
+  static async checkUserExists(email: string) {
+    try {
+      // Try to trigger password reset to see if user exists
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      return !error; // If no error, user exists
+    } catch (error) {
+      console.error('Error checking user existence:', error);
+      return false;
+    }
   }
 }

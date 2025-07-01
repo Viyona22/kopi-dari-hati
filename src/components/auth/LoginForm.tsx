@@ -136,18 +136,34 @@ export function LoginForm() {
     setIsLoading(true);
     try {
       console.log('Admin signup attempt for:', data.email, data.fullName);
-      const { error } = await AuthService.signUp(data.email, data.password, data.fullName, 'admin');
+      const result = await AuthService.signUp(data.email, data.password, data.fullName, 'admin');
       
-      if (error) {
-        console.error('Admin signup error:', error);
-        if (error.message.includes('already registered')) {
+      if (result.error) {
+        console.error('Admin signup error:', result.error);
+        if (result.error.message?.includes('already registered') || result.error.message?.includes('already exists')) {
           toast.error('Email sudah terdaftar. Silakan gunakan email lain atau login.');
+        } else if (result.error.message?.includes('Password should be at least')) {
+          toast.error('Password harus minimal 6 karakter.');
+        } else if (result.error.message?.includes('Invalid email')) {
+          toast.error('Format email tidak valid.');
         } else {
-          toast.error('Gagal mendaftar: ' + error.message);
+          toast.error('Gagal mendaftar: ' + result.error.message);
         }
+      } else if (result.needsConfirmation) {
+        console.log('Admin signup successful, needs email confirmation');
+        toast.success(
+          'Pendaftaran admin berhasil! Silakan cek email Anda untuk konfirmasi sebelum login.',
+          {
+            action: {
+              label: 'Kirim Ulang Email',
+              onClick: () => handleResendConfirmation(data.email)
+            }
+          }
+        );
+        signUpForm.reset();
       } else {
         console.log('Admin signup successful');
-        toast.success('Pendaftaran admin berhasil! Silakan cek email Anda untuk konfirmasi.');
+        toast.success('Pendaftaran admin berhasil! Anda sekarang dapat login.');
         signUpForm.reset();
       }
     } catch (error) {
