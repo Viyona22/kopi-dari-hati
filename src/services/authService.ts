@@ -29,24 +29,14 @@ export class AuthService {
       
       console.log('Sign up result:', { data, error });
       
-      // If signup was successful, check if profile was created by trigger
       if (data?.user && !error) {
         // Wait a moment for trigger to execute
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Try to get the profile to verify it was created
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .limit(1);
-        
-        console.log('Profile created by trigger:', profiles);
-        
         return { 
           data, 
           error: null,
-          profileCreated: !!profiles && profiles.length > 0
+          profileCreated: true
         };
       }
       

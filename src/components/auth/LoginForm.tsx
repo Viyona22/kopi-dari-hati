@@ -51,7 +51,6 @@ export function LoginForm() {
         }
       } else {
         console.log('Attempting registration for:', email);
-        // Fix: Only pass 3 arguments - remove the role argument since it's set in metadata
         const { data, error } = await signUp(email, password, fullName);
         
         if (error) {
