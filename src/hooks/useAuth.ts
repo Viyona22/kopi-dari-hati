@@ -26,7 +26,9 @@ export function useAuth() {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await loadUserProfile(session.user.id);
+          setTimeout(() => {
+            loadUserProfile(session.user.id);
+          }, 0);
         } else {
           setUserProfile(null);
         }

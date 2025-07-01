@@ -39,12 +39,15 @@ export class ProfileService {
               return null;
             }
 
-            // Assign default customer role
+            // Get role from user metadata or assign default
+            const userRole = user.user.user_metadata?.role || 'customer';
+            console.log('Assigning role from metadata:', userRole);
+
             await supabase
               .from('user_roles')
               .insert({
                 user_id: userId,
-                role: 'customer'
+                role: userRole
               });
 
             profileData = newProfile;
@@ -64,23 +67,27 @@ export class ProfileService {
       if (roleError) {
         console.error('Error loading role:', roleError);
         
-        // If no role exists, assign customer role
+        // If no role exists, check user metadata first
         if (roleError.code === 'PGRST116') {
-          console.log('Role not found, assigning customer role...');
+          console.log('Role not found, checking user metadata...');
+          const { data: user } = await supabase.auth.getUser();
+          const userRole = user.user?.user_metadata?.role || 'customer';
+          
+          console.log('Assigning role:', userRole);
           await supabase
             .from('user_roles')
             .insert({
               user_id: userId,
-              role: 'customer'
+              role: userRole
             });
           
-          // Set default role
+          // Set role from metadata or default
           if (profileData) {
             return {
               id: profileData.id,
               email: profileData.email,
               full_name: profileData.full_name,
-              role: 'customer'
+              role: userRole
             };
           }
         }
@@ -102,6 +109,51 @@ export class ProfileService {
     } catch (error) {
       console.error('Error loading user profile:', error);
       return null;
+    }
+  }
+
+  // Method to fix existing admin accounts
+  static async fixAdminAccount(email: string) {
+    try {
+      console.log('Attempting to fix admin account for:', email);
+      
+      // Try to find user by email in auth.users (this requires admin privileges)
+      // For now, we'll provide a way to create missing profile and role
+      const { data: user } = await supabase.auth.getUser();
+      
+      if (user.user && user.user.email === email) {
+        // Create profile if missing
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: user.user.id,
+            email: user.user.email,
+            full_name: user.user.user_metadata?.full_name || user.user.email
+          });
+
+        if (profileError) {
+          console.error('Error creating/updating profile:', profileError);
+        }
+
+        // Create or update role to admin
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .upsert({
+            user_id: user.user.id,
+            role: 'admin'
+          });
+
+        if (roleError) {
+          console.error('Error creating/updating role:', roleError);
+        }
+
+        return { success: true };
+      }
+      
+      return { success: false, message: 'User not found or not logged in' };
+    } catch (error) {
+      console.error('Error fixing admin account:', error);
+      return { success: false, message: 'Error fixing account' };
     }
   }
 }

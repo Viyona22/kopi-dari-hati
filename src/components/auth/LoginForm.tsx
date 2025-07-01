@@ -1,24 +1,45 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthContext } from './AuthProvider';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AuthService } from '@/services/authService';
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6)
+  email: z.string().email('Email tidak valid'),
+  password: z.string().min(6, 'Password minimal 6 karakter')
+});
+
+const signUpSchema = z.object({
+  email: z.string().email('Email tidak valid'),
+  password: z.string().min(6, 'Password minimal 6 karakter'),
+  confirmPassword: z.string(),
+  fullName: z.string().min(2, 'Nama lengkap minimal 2 karakter')
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Password tidak cocok",
+  path: ["confirmPassword"],
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
+type SignUpFormData = z.infer<typeof signUpSchema>;
 
 export function LoginForm() {
   const navigate = useNavigate();
   const { signIn, userProfile } = useAuthContext();
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema)
+  });
+
+  const signUpForm = useForm<SignUpFormData>({
+    resolver: zodResolver(signUpSchema)
   });
 
   // Redirect if already logged in
@@ -33,14 +54,21 @@ export function LoginForm() {
     }
   }, [userProfile, navigate]);
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onLogin = async (data: LoginFormData) => {
+    setIsLoading(true);
     try {
       console.log('Admin login attempt for:', data.email);
       const { error } = await signIn(data.email, data.password);
       
       if (error) {
         console.error('Admin login error:', error);
-        toast.error('Email atau password salah. Silakan coba lagi.');
+        if (error.message.includes('Email not confirmed')) {
+          toast.error('Email belum dikonfirmasi. Silakan cek email Anda atau hubungi administrator.');
+        } else if (error.message.includes('Invalid login credentials')) {
+          toast.error('Email atau password salah. Silakan coba lagi.');
+        } else {
+          toast.error('Gagal login: ' + error.message);
+        }
       } else {
         console.log('Admin login successful');
         toast.success('Login berhasil! Selamat datang Admin.');
@@ -49,6 +77,53 @@ export function LoginForm() {
     } catch (error) {
       console.error('Admin login exception:', error);
       toast.error('Terjadi kesalahan saat login.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onSignUp = async (data: SignUpFormData) => {
+    setIsLoading(true);
+    try {
+      console.log('Admin signup attempt for:', data.email, data.fullName);
+      const { error } = await AuthService.signUp(data.email, data.password, data.fullName, 'admin');
+      
+      if (error) {
+        console.error('Admin signup error:', error);
+        if (error.message.includes('already registered')) {
+          toast.error('Email sudah terdaftar. Silakan gunakan email lain atau login.');
+        } else {
+          toast.error('Gagal mendaftar: ' + error.message);
+        }
+      } else {
+        console.log('Admin signup successful');
+        toast.success('Pendaftaran admin berhasil! Silakan cek email Anda untuk konfirmasi.');
+        signUpForm.reset();
+      }
+    } catch (error) {
+      console.error('Admin signup exception:', error);
+      toast.error('Terjadi kesalahan saat mendaftar.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    const email = loginForm.getValues('email');
+    if (!email) {
+      toast.error('Silakan masukkan email terlebih dahulu.');
+      return;
+    }
+
+    try {
+      const { error } = await AuthService.resetPassword(email);
+      if (error) {
+        toast.error('Gagal mengirim email reset password.');
+      } else {
+        toast.success('Email reset password telah dikirim!');
+      }
+    } catch (error) {
+      toast.error('Terjadi kesalahan saat mengirim email reset.');
     }
   };
 
@@ -56,43 +131,127 @@ export function LoginForm() {
     <div className="bg-[rgba(217,217,217,1)] p-8 rounded-lg relative">
       <div className="flex flex-col items-center mb-8">
         <img src="https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/840f8e820466cd972c9227284f37450b12ef6ca7?placeholderIfAbsent=true" className="w-44 rounded-full mb-6" alt="Login" />
-        <h2 className="text-2xl font-black text-[#df5353] mb-2">Login Admin</h2>
-        <p className="text-lg text-[#df5353] mb-2">Masuk ke panel admin</p>
+        <h2 className="text-2xl font-black text-[#df5353] mb-2">Panel Admin</h2>
+        <p className="text-lg text-[#df5353] mb-2">Masuk atau daftar sebagai admin</p>
         <p className="text-sm text-[#df5353] opacity-75 text-center">Hanya untuk staff/admin restoran</p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div>
-          <input
-            {...register('email')}
-            type="email"
-            placeholder="Email Admin"
-            className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
-          />
-          {errors.email && (
-            <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-          )}
-        </div>
+      <Tabs defaultValue="login" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="login">Masuk Admin</TabsTrigger>
+          <TabsTrigger value="signup">Daftar Admin</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="login">
+          <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+            <div>
+              <Input
+                {...loginForm.register('email')}
+                type="email"
+                placeholder="Email Admin"
+                className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
+                disabled={isLoading}
+              />
+              {loginForm.formState.errors.email && (
+                <p className="text-red-500 text-sm mt-1">{loginForm.formState.errors.email.message}</p>
+              )}
+            </div>
 
-        <div>
-          <input
-            {...register('password')}
-            type="password"
-            placeholder="Password Admin"
-            className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
-          />
-          {errors.password && (
-            <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
-          )}
-        </div>
+            <div>
+              <Input
+                {...loginForm.register('password')}
+                type="password"
+                placeholder="Password Admin"
+                className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
+                disabled={isLoading}
+              />
+              {loginForm.formState.errors.password && (
+                <p className="text-red-500 text-sm mt-1">{loginForm.formState.errors.password.message}</p>
+              )}
+            </div>
 
-        <button
-          type="submit"
-          className="w-full bg-[#df5353] text-white font-bold py-3 px-4 rounded hover:bg-[#c84444] transition-colors"
-        >
-          Masuk sebagai Admin
-        </button>
-      </form>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-[#df5353] text-white font-bold py-3 px-4 rounded hover:bg-[#c84444] transition-colors"
+            >
+              {isLoading ? 'Memproses...' : 'Masuk sebagai Admin'}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleResetPassword}
+              className="w-full border-[#df5353] text-[#df5353] hover:bg-[#df5353] hover:text-white"
+            >
+              Lupa Password?
+            </Button>
+          </form>
+        </TabsContent>
+        
+        <TabsContent value="signup">
+          <form onSubmit={signUpForm.handleSubmit(onSignUp)} className="space-y-4">
+            <div>
+              <Input
+                {...signUpForm.register('fullName')}
+                placeholder="Nama Lengkap Admin"
+                className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
+                disabled={isLoading}
+              />
+              {signUpForm.formState.errors.fullName && (
+                <p className="text-red-500 text-sm mt-1">{signUpForm.formState.errors.fullName.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Input
+                {...signUpForm.register('email')}
+                type="email"
+                placeholder="Email Admin"
+                className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
+                disabled={isLoading}
+              />
+              {signUpForm.formState.errors.email && (
+                <p className="text-red-500 text-sm mt-1">{signUpForm.formState.errors.email.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Input
+                {...signUpForm.register('password')}
+                type="password"
+                placeholder="Password Admin"
+                className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
+                disabled={isLoading}
+              />
+              {signUpForm.formState.errors.password && (
+                <p className="text-red-500 text-sm mt-1">{signUpForm.formState.errors.password.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Input
+                {...signUpForm.register('confirmPassword')}
+                type="password"
+                placeholder="Konfirmasi Password"
+                className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
+                disabled={isLoading}
+              />
+              {signUpForm.formState.errors.confirmPassword && (
+                <p className="text-red-500 text-sm mt-1">{signUpForm.formState.errors.confirmPassword.message}</p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-[#df5353] text-white font-bold py-3 px-4 rounded hover:bg-[#c84444] transition-colors"
+            >
+              {isLoading ? 'Memproses...' : 'Daftar sebagai Admin'}
+            </Button>
+          </form>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
