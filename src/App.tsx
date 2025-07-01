@@ -11,6 +11,7 @@ import Reservation from "./pages/Reservation";
 import Login from "./pages/Login";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
+import History from "./pages/History";
 import Admin from "./pages/Admin";
 import AdminReservations from "./pages/AdminReservations";
 import AdminPurchases from "./pages/AdminPurchases";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/menu" element={<Menu />} />
             <Route path="/reservation" element={<Reservation />} />
+            <Route path="/history" element={<History />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />

@@ -38,6 +38,11 @@ export function Header() {
               </Link>
             </li>
             <li>
+              <Link to="/history" className="text-[#d4462d] hover:underline">
+                Riwayat Saya
+              </Link>
+            </li>
+            <li>
               <Link to="/login" className="text-[#d4462d] hover:underline">
                 Login
               </Link>
