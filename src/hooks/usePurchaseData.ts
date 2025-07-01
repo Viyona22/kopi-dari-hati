@@ -2,10 +2,12 @@
 import { useState, useEffect } from 'react'
 import { supabase, Purchase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { useAuthContext } from '@/components/auth/AuthProvider'
 
 export function usePurchaseData() {
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
+  const { user } = useAuthContext()
 
   // Load purchases from Supabase
   const loadPurchases = async () => {
@@ -37,9 +39,15 @@ export function usePurchaseData() {
   // Save purchase to Supabase
   const savePurchase = async (purchase: Omit<Purchase, 'id' | 'created_at'>) => {
     try {
+      // Add user_id to purchase data
+      const purchaseData = {
+        ...purchase,
+        user_id: user?.id
+      }
+
       const { data, error } = await supabase
         .from('purchases')
-        .insert(purchase)
+        .insert(purchaseData)
         .select()
 
       if (error) throw error
@@ -94,7 +102,7 @@ export function usePurchaseData() {
 
   useEffect(() => {
     loadPurchases()
-  }, [])
+  }, [user])
 
   return {
     purchases,

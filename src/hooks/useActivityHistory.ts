@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuthContext } from '@/components/auth/AuthProvider';
 
 interface Activity {
   id: string;
@@ -17,8 +18,15 @@ interface Activity {
 export function useActivityHistory() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, userProfile } = useAuthContext();
 
   const loadActivities = async () => {
+    if (!user) {
+      setActivities([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       // Load purchases (pemesanan)
       const { data: purchases, error: purchasesError } = await supabase
@@ -85,7 +93,7 @@ export function useActivityHistory() {
 
   useEffect(() => {
     loadActivities();
-  }, []);
+  }, [user, userProfile]);
 
   return {
     activities,

@@ -5,8 +5,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ForgotPasswordDialog } from './ForgotPasswordDialog';
-import { SignUpDialog } from './SignUpDialog';
+import { useAuthContext } from './AuthProvider';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -17,23 +16,23 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const navigate = useNavigate();
+  const { signIn } = useAuthContext();
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema)
   });
 
-  const onSubmit = (data: LoginFormData) => {
-    console.log(data);
-    
-    // Check if credentials match admin credentials
-    if (data.email === 'kopidarihati@gmail.com' && data.password === 'admin123') {
-      toast.success('Login berhasil! Selamat datang Admin.');
-      // Store login status in localStorage
-      localStorage.setItem('isAdminLoggedIn', 'true');
-      localStorage.setItem('adminEmail', data.email);
-      // Redirect to admin dashboard
-      navigate('/admin');
-    } else {
-      toast.error('Email atau password salah. Silakan coba lagi.');
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      const { error } = await signIn(data.email, data.password);
+      
+      if (error) {
+        toast.error('Email atau password salah. Silakan coba lagi.');
+      } else {
+        toast.success('Login berhasil! Selamat datang Admin.');
+        navigate('/admin');
+      }
+    } catch (error) {
+      toast.error('Terjadi kesalahan saat login.');
     }
   };
 
@@ -71,18 +70,12 @@ export function LoginForm() {
           )}
         </div>
 
-        <ForgotPasswordDialog />
-
         <button
           type="submit"
           className="w-full bg-[#df5353] text-white font-bold py-3 px-4 rounded hover:bg-[#c84444] transition-colors"
         >
           Masuk sebagai Admin
         </button>
-
-        <p className="text-[#df5353] text-center mt-4">
-          Don't have an account? <SignUpDialog />
-        </p>
       </form>
     </div>
   );

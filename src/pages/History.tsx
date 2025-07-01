@@ -3,13 +3,16 @@ import React, { useState } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { ActivityCard } from '@/components/history/ActivityCard';
 import { useActivityHistory } from '@/hooks/useActivityHistory';
+import { useAuthContext } from '@/components/auth/AuthProvider';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Filter, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export default function History() {
+function HistoryContent() {
   const { activities, loading, refreshActivities } = useActivityHistory();
+  const { userProfile } = useAuthContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'pemesanan' | 'reservasi'>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -51,8 +54,16 @@ export default function History() {
               Riwayat Aktivitas
             </h1>
             <p className="text-gray-600">
-              Pantau semua pemesanan dan reservasi Anda dalam satu tempat
+              {userProfile?.role === 'admin' 
+                ? 'Pantau semua aktivitas pelanggan' 
+                : 'Pantau semua aktivitas Anda dalam satu tempat'
+              }
             </p>
+            {userProfile && (
+              <p className="text-sm text-[#d4462d] mt-2">
+                Selamat datang, {userProfile.full_name} ({userProfile.role})
+              </p>
+            )}
           </div>
 
           {/* Filters */}
@@ -158,5 +169,13 @@ export default function History() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+export default function History() {
+  return (
+    <ProtectedRoute requireAuth={true}>
+      <HistoryContent />
+    </ProtectedRoute>
   );
 }

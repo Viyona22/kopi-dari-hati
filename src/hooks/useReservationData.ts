@@ -2,10 +2,12 @@
 import { useState, useEffect } from 'react'
 import { supabase, Reservation } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { useAuthContext } from '@/components/auth/AuthProvider'
 
 export function useReservationData() {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
+  const { user } = useAuthContext()
 
   // Load reservations from Supabase
   const loadReservations = async () => {
@@ -29,9 +31,15 @@ export function useReservationData() {
   // Save reservation to Supabase
   const saveReservation = async (reservation: Omit<Reservation, 'created_at'>) => {
     try {
+      // Add user_id to reservation data
+      const reservationData = {
+        ...reservation,
+        user_id: user?.id
+      }
+
       const { data, error } = await supabase
         .from('reservations')
-        .upsert(reservation)
+        .upsert(reservationData)
         .select()
 
       if (error) throw error
@@ -86,7 +94,7 @@ export function useReservationData() {
 
   useEffect(() => {
     loadReservations()
-  }, [])
+  }, [user])
 
   return {
     reservations,
