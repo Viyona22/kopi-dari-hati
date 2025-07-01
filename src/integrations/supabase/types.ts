@@ -120,7 +120,7 @@ export type Database = {
           category: string
           created_at?: string | null
           description?: string | null
-          id: string
+          id?: string
           image?: string | null
           is_featured?: boolean | null
           name: string

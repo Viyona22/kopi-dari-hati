@@ -33,7 +33,7 @@ export function useMenuData() {
   }
 
   // Save menu item to Supabase
-  const saveMenuItem = async (item: MenuItem | Omit<MenuItem, 'created_at' | 'updated_at'>) => {
+  const saveMenuItem = async (item: MenuItem | Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       console.log('=== MENU SAVE DEBUG ===')
       console.log('1. Item to save:', item)
@@ -81,22 +81,8 @@ export function useMenuData() {
 
       console.log('4. Category validation passed:', categoryCheck)
       
-      // For new items, check if ID already exists to avoid conflicts
-      if (item.id) {
-        const { data: existingItem } = await supabase
-          .from('menu_items')
-          .select('id')
-          .eq('id', item.id)
-          .single()
-        
-        if (existingItem) {
-          console.log('Item with this ID already exists, updating instead of inserting')
-        }
-      }
-      
       // Prepare the item for database insertion - remove undefined values
       const itemToSave = {
-        ...(item.id && { id: item.id }),
         name: item.name.trim(),
         price: Number(item.price),
         category: item.category,
@@ -110,56 +96,33 @@ export function useMenuData() {
 
       console.log('5. Prepared item for database:', itemToSave)
 
-      // Use insert for new items or upsert for existing items
-      let query;
-      if (item.id) {
-        // Use upsert for items with existing ID
-        query = supabase
+      let result;
+      // Check if this is an update (item has id) or insert (new item)
+      if ('id' in item && item.id) {
+        // Update existing item
+        const { data, error } = await supabase
           .from('menu_items')
-          .upsert(itemToSave, { 
-            onConflict: 'id',
-            ignoreDuplicates: false 
-          })
+          .update(itemToSave)
+          .eq('id', item.id)
           .select()
-      } else {
-        // Use insert for new items without ID (let database generate it)
-        const { id, ...itemWithoutId } = itemToSave
-        query = supabase
-          .from('menu_items')
-          .insert(itemWithoutId)
-          .select()
-      }
-
-      const { data, error } = await query
-
-      if (error) {
-        console.error('Database save error:', error)
-        console.error('Error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        })
         
-        // More specific error messages based on error type
-        if (error.message?.includes('violates check constraint')) {
-          toast.error('Data menu tidak valid. Periksa kategori yang dipilih.')
-        } else if (error.message?.includes('foreign key')) {
-          toast.error('Kategori yang dipilih tidak valid atau tidak ditemukan.')
-        } else if (error.message?.includes('duplicate key')) {
-          toast.error('Menu dengan ID tersebut sudah ada.')
-        } else if (error.message?.includes('null value')) {
-          toast.error('Semua field wajib harus diisi.')
-        } else {
-          toast.error(`Gagal menyimpan menu: ${error.message}`)
-        }
-        throw error
+        if (error) throw error
+        result = data
+      } else {
+        // Insert new item (database will auto-generate ID)
+        const { data, error } = await supabase
+          .from('menu_items')
+          .insert(itemToSave)
+          .select()
+        
+        if (error) throw error
+        result = data
       }
-      
-      console.log('6. Successfully saved to database:', data)
+
+      console.log('6. Successfully saved to database:', result)
       await loadMenuItems() // Refresh data
       toast.success('Menu berhasil disimpan!')
-      return data?.[0]
+      return result?.[0]
     } catch (error) {
       console.error('=== SAVE MENU ERROR ===', error)
       

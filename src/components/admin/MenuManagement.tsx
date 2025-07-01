@@ -184,8 +184,8 @@ export function MenuManagement() {
     }
     
     try {
-      // Don't set ID for new items - let database generate it
-      const itemToAdd: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'> = {
+      // Create new item object without ID - database will auto-generate it
+      const itemToAdd = {
         name: newItem.name.trim(),
         price: Number(newItem.price),
         category: newItem.category,
