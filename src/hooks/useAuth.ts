@@ -27,6 +27,8 @@ export function useAuth() {
         .eq('id', userId)
         .single();
 
+      let profileData = profile;
+
       if (profileError) {
         console.error('Error loading profile:', profileError);
         
@@ -59,7 +61,7 @@ export function useAuth() {
                 role: 'customer'
               });
 
-            profile = newProfile;
+            profileData = newProfile;
           }
         } else {
           setUserProfile(null);
@@ -88,11 +90,11 @@ export function useAuth() {
             });
           
           // Set default role
-          if (profile) {
+          if (profileData) {
             setUserProfile({
-              id: profile.id,
-              email: profile.email,
-              full_name: profile.full_name,
+              id: profileData.id,
+              email: profileData.email,
+              full_name: profileData.full_name,
               role: 'customer'
             });
           }
@@ -102,11 +104,11 @@ export function useAuth() {
         return;
       }
 
-      if (profile && roleData) {
+      if (profileData && roleData) {
         const userProfileData = {
-          id: profile.id,
-          email: profile.email,
-          full_name: profile.full_name,
+          id: profileData.id,
+          email: profileData.email,
+          full_name: profileData.full_name,
           role: roleData.role
         };
         console.log('User profile loaded:', userProfileData);
