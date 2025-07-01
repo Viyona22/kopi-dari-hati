@@ -23,20 +23,24 @@ export class AuthService {
           data: {
             full_name: fullName,
             role: role
-          },
-          emailRedirectTo: `${window.location.origin}/`
+          }
         }
       });
       
       console.log('Sign up result:', { data, error });
       
-      // Check if signup was successful but user needs email confirmation
-      if (data?.user && !data.user.email_confirmed_at) {
-        console.log('User created but needs email confirmation');
+      // If signup was successful, the trigger should have created the profile
+      if (data?.user && !error) {
+        // Verify profile was created
+        const { data: profile } = await supabase
+          .rpc('get_user_profile', { user_id: data.user.id });
+        
+        console.log('Profile created by trigger:', profile);
+        
         return { 
           data, 
           error: null,
-          needsConfirmation: true
+          profileCreated: !!profile
         };
       }
       
@@ -68,10 +72,7 @@ export class AuthService {
     console.log('Resending confirmation email for:', email);
     const { error } = await supabase.auth.resend({
       type: 'signup',
-      email: email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`
-      }
+      email: email
     });
     return { error };
   }

@@ -7,107 +7,40 @@ export class ProfileService {
     try {
       console.log('Loading profile for user:', userId);
       
-      // Get user profile
+      // Get user profile using RPC or direct query with proper typing
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      let profileData = profile;
+        .rpc('get_user_profile', { user_id: userId });
 
       if (profileError) {
-        console.error('Error loading profile:', profileError);
+        console.error('Error loading profile via RPC, trying direct query:', profileError);
         
-        // If profile doesn't exist, create it
-        if (profileError.code === 'PGRST116') {
-          console.log('Profile not found, creating new profile...');
+        // Fallback to direct query
+        try {
           const { data: user } = await supabase.auth.getUser();
-          if (user.user) {
+          if (user.user && user.user.id === userId) {
             const userRole = user.user.user_metadata?.role || 'customer';
-            console.log('Creating profile with role from metadata:', userRole);
+            console.log('Creating profile from user metadata:', userRole);
             
-            const { data: newProfile, error: createError } = await supabase
-              .from('profiles')
-              .insert({
-                id: userId,
-                email: user.user.email,
-                full_name: user.user.user_metadata?.full_name || user.user.email
-              })
-              .select()
-              .single();
-
-            if (createError) {
-              console.error('Error creating profile:', createError);
-              return null;
-            }
-
-            // Create user role
-            const { error: roleError } = await supabase
-              .from('user_roles')
-              .insert({
-                user_id: userId,
-                role: userRole
-              });
-
-            if (roleError) {
-              console.error('Error creating user role:', roleError);
-            }
-
-            profileData = newProfile;
-          }
-        } else {
-          return null;
-        }
-      }
-
-      // Get user role
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
-
-      if (roleError) {
-        console.error('Error loading role:', roleError);
-        
-        // If no role exists, check user metadata first
-        if (roleError.code === 'PGRST116') {
-          console.log('Role not found, checking user metadata...');
-          const { data: user } = await supabase.auth.getUser();
-          const userRole = user.user?.user_metadata?.role || 'customer';
-          
-          console.log('Creating missing role:', userRole);
-          const { error: createRoleError } = await supabase
-            .from('user_roles')
-            .insert({
-              user_id: userId,
-              role: userRole
-            });
-          
-          if (createRoleError) {
-            console.error('Error creating role:', createRoleError);
-          }
-          
-          // Return profile with role from metadata
-          if (profileData) {
             return {
-              id: profileData.id,
-              email: profileData.email,
-              full_name: profileData.full_name,
+              id: userId,
+              email: user.user.email || '',
+              full_name: user.user.user_metadata?.full_name || user.user.email || '',
               role: userRole
             };
           }
+        } catch (fallbackError) {
+          console.error('Fallback error:', fallbackError);
         }
+        
         return null;
       }
 
-      if (profileData && roleData) {
+      if (profile) {
         const userProfileData = {
-          id: profileData.id,
-          email: profileData.email,
-          full_name: profileData.full_name,
-          role: roleData.role
+          id: profile.id,
+          email: profile.email,
+          full_name: profile.full_name,
+          role: profile.role
         };
         console.log('User profile loaded:', userProfileData);
         return userProfileData;
@@ -125,37 +58,23 @@ export class ProfileService {
     try {
       console.log('Attempting to fix admin account for:', email);
       
-      // Try to find user by email in auth.users (this requires admin privileges)
-      // For now, we'll provide a way to create missing profile and role
       const { data: user } = await supabase.auth.getUser();
       
       if (user.user && user.user.email === email) {
-        // Create profile if missing
+        // Try to create profile via RPC
         const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: user.user.id,
-            email: user.user.email,
-            full_name: user.user.user_metadata?.full_name || user.user.email
+          .rpc('create_user_profile', {
+            user_id: user.user.id,
+            user_email: user.user.email,
+            user_full_name: user.user.user_metadata?.full_name || user.user.email,
+            user_role: 'admin'
           });
 
         if (profileError) {
-          console.error('Error creating/updating profile:', profileError);
+          console.error('Error creating/updating profile via RPC:', profileError);
         }
 
-        // Create or update role to admin
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .upsert({
-            user_id: user.user.id,
-            role: 'admin'
-          });
-
-        if (roleError) {
-          console.error('Error creating/updating role:', roleError);
-        }
-
-        return { success: true };
+        return { success: !profileError };
       }
       
       return { success: false, message: 'User not found or not logged in' };

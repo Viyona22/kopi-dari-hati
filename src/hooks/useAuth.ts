@@ -13,7 +13,9 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   const loadUserProfile = async (userId: string) => {
+    console.log('Loading user profile for:', userId);
     const profile = await ProfileService.loadUserProfile(userId);
+    console.log('Profile loaded:', profile);
     setUserProfile(profile);
   };
 
@@ -26,6 +28,7 @@ export function useAuth() {
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          // Use setTimeout to avoid blocking the auth state change
           setTimeout(() => {
             loadUserProfile(session.user.id);
           }, 0);
@@ -57,8 +60,8 @@ export function useAuth() {
     return await AuthService.signIn(email, password);
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    return await AuthService.signUp(email, password, fullName);
+  const signUp = async (email: string, password: string, fullName: string, role: 'admin' | 'customer' = 'customer') => {
+    return await AuthService.signUp(email, password, fullName, role);
   };
 
   const signOut = async () => {

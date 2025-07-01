@@ -1,323 +1,215 @@
+
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { useAuthContext } from './AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuthContext } from './AuthProvider';
+import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { AuthService } from '@/services/authService';
 import { ProfileService } from '@/services/profileService';
 
-const loginSchema = z.object({
-  email: z.string().email('Email tidak valid'),
-  password: z.string().min(6, 'Password minimal 6 karakter')
-});
-
-const signUpSchema = z.object({
-  email: z.string().email('Email tidak valid'),
-  password: z.string().min(6, 'Password minimal 6 karakter'),
-  confirmPassword: z.string(),
-  fullName: z.string().min(2, 'Nama lengkap minimal 2 karakter')
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Password tidak cocok",
-  path: ["confirmPassword"],
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
-type SignUpFormData = z.infer<typeof signUpSchema>;
-
 export function LoginForm() {
-  const navigate = useNavigate();
-  const { signIn, userProfile } = useAuthContext();
-  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const { signIn, signUp } = useAuthContext();
 
-  const loginForm = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema)
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
 
-  const signUpForm = useForm<SignUpFormData>({
-    resolver: zodResolver(signUpSchema)
-  });
-
-  // Redirect if already logged in
-  React.useEffect(() => {
-    if (userProfile) {
-      console.log('Admin already logged in, redirecting...', userProfile);
-      if (userProfile.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/history');
-      }
-    }
-  }, [userProfile, navigate]);
-
-  const handleFixAdminAccount = async (email: string) => {
     try {
-      console.log('Attempting to fix admin account for:', email);
-      const result = await ProfileService.fixAdminAccount(email);
-      if (result.success) {
-        toast.success('Admin account berhasil diperbaiki! Silakan coba login lagi.');
-      } else {
-        toast.error(result.message || 'Gagal memperbaiki admin account.');
-      }
-    } catch (error) {
-      console.error('Error fixing admin account:', error);
-      toast.error('Terjadi kesalahan saat memperbaiki admin account.');
-    }
-  };
-
-  const handleResendConfirmation = async (email: string) => {
-    try {
-      const { error } = await AuthService.resendConfirmation(email);
-      if (error) {
-        toast.error('Gagal mengirim ulang email konfirmasi.');
-      } else {
-        toast.success('Email konfirmasi telah dikirim ulang! Silakan cek email Anda.');
-      }
-    } catch (error) {
-      toast.error('Terjadi kesalahan saat mengirim email konfirmasi.');
-    }
-  };
-
-  const onLogin = async (data: LoginFormData) => {
-    setIsLoading(true);
-    try {
-      console.log('Admin login attempt for:', data.email);
-      const { error } = await signIn(data.email, data.password);
-      
-      if (error) {
-        console.error('Admin login error:', error);
+      if (isLogin) {
+        console.log('Attempting login for:', email);
+        const { data, error } = await signIn(email, password);
         
-        if (error.message.includes('Email not confirmed')) {
-          toast.error(
-            'Email belum dikonfirmasi. Silakan cek email Anda.',
-            {
-              action: {
-                label: 'Kirim Ulang',
-                onClick: () => handleResendConfirmation(data.email)
-              }
-            }
-          );
-        } else if (error.message.includes('Invalid login credentials')) {
-          // Check if this might be an existing admin that needs fixing
-          if (data.email === 'kopidarihati@gmail.com') {
-            toast.error(
-              'Login gagal. Mungkin akun admin perlu diperbaiki.',
-              {
-                action: {
-                  label: 'Perbaiki Akun',
-                  onClick: () => handleFixAdminAccount(data.email)
-                }
-              }
-            );
+        if (error) {
+          console.error('Login error:', error);
+          
+          if (error.message.includes('Invalid login credentials')) {
+            setError('Email atau password salah. Pastikan Anda sudah terdaftar dan menggunakan kredensial yang benar.');
+          } else if (error.message.includes('Email not confirmed')) {
+            setError('Email belum dikonfirmasi. Silakan cek email Anda.');
           } else {
-            toast.error('Email atau password salah. Silakan coba lagi atau daftar sebagai admin baru.');
+            setError(error.message);
           }
-        } else {
-          toast.error('Gagal login: ' + error.message);
+        } else if (data?.user) {
+          console.log('Login successful for:', data.user.email);
+          setSuccess('Login berhasil! Mengarahkan...');
+          
+          // Redirect based on user role will be handled by useAuth
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1000);
         }
       } else {
-        console.log('Admin login successful');
-        toast.success('Login berhasil! Selamat datang Admin.');
-        // Navigation will be handled by the useEffect above when userProfile updates
+        console.log('Attempting registration for:', email);
+        const { data, error } = await signUp(email, password, fullName, 'admin');
+        
+        if (error) {
+          console.error('Registration error:', error);
+          
+          if (error.message.includes('User already registered')) {
+            setError('Email sudah terdaftar. Silakan login atau gunakan email lain.');
+          } else if (error.message.includes('Password should be at least 6 characters')) {
+            setError('Password harus minimal 6 karakter.');
+          } else {
+            setError(error.message);
+          }
+        } else if (data?.user) {
+          console.log('Registration successful for:', data.user.email);
+          setSuccess('Registrasi berhasil! Akun admin telah dibuat. Silakan login.');
+          
+          // Switch to login mode
+          setTimeout(() => {
+            setIsLogin(true);
+            setError('');
+            setPassword('');
+          }, 2000);
+        }
       }
-    } catch (error) {
-      console.error('Admin login exception:', error);
-      toast.error('Terjadi kesalahan saat login.');
+    } catch (err) {
+      console.error('Auth error:', err);
+      setError('Terjadi kesalahan. Silakan coba lagi.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const onSignUp = async (data: SignUpFormData) => {
-    setIsLoading(true);
-    try {
-      console.log('Admin signup attempt for:', data.email, data.fullName);
-      const result = await AuthService.signUp(data.email, data.password, data.fullName, 'admin');
-      
-      if (result.error) {
-        console.error('Admin signup error:', result.error);
-        if (result.error.message?.includes('already registered') || result.error.message?.includes('already exists')) {
-          toast.error('Email sudah terdaftar. Silakan gunakan email lain atau login.');
-        } else if (result.error.message?.includes('Password should be at least')) {
-          toast.error('Password harus minimal 6 karakter.');
-        } else if (result.error.message?.includes('Invalid email')) {
-          toast.error('Format email tidak valid.');
-        } else {
-          toast.error('Gagal mendaftar: ' + result.error.message);
-        }
-      } else if (result.needsConfirmation) {
-        console.log('Admin signup successful, needs email confirmation');
-        toast.success(
-          'Pendaftaran admin berhasil! Silakan cek email Anda untuk konfirmasi sebelum login.',
-          {
-            action: {
-              label: 'Kirim Ulang Email',
-              onClick: () => handleResendConfirmation(data.email)
-            }
-          }
-        );
-        signUpForm.reset();
-      } else {
-        console.log('Admin signup successful');
-        toast.success('Pendaftaran admin berhasil! Anda sekarang dapat login.');
-        signUpForm.reset();
-      }
-    } catch (error) {
-      console.error('Admin signup exception:', error);
-      toast.error('Terjadi kesalahan saat mendaftar.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResetPassword = async () => {
-    const email = loginForm.getValues('email');
+  const handleFixAccount = async () => {
     if (!email) {
-      toast.error('Silakan masukkan email terlebih dahulu.');
+      setError('Masukkan email terlebih dahulu');
       return;
     }
-
+    
+    setLoading(true);
     try {
-      const { error } = await AuthService.resetPassword(email);
-      if (error) {
-        toast.error('Gagal mengirim email reset password.');
+      const result = await ProfileService.fixAdminAccount(email);
+      if (result.success) {
+        setSuccess('Akun berhasil diperbaiki! Silakan login kembali.');
       } else {
-        toast.success('Email reset password telah dikirim!');
+        setError(result.message || 'Gagal memperbaiki akun');
       }
     } catch (error) {
-      toast.error('Terjadi kesalahan saat mengirim email reset.');
+      setError('Terjadi kesalahan saat memperbaiki akun');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="bg-[rgba(217,217,217,1)] p-8 rounded-lg relative">
-      <div className="flex flex-col items-center mb-8">
-        <img src="https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/840f8e820466cd972c9227284f37450b12ef6ca7?placeholderIfAbsent=true" className="w-44 rounded-full mb-6" alt="Login" />
-        <h2 className="text-2xl font-black text-[#df5353] mb-2">Panel Admin</h2>
-        <p className="text-lg text-[#df5353] mb-2">Masuk atau daftar sebagai admin</p>
-        <p className="text-sm text-[#df5353] opacity-75 text-center">Hanya untuk staff/admin restoran</p>
-      </div>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle className="text-center text-[#d4462d]">
+          {isLogin ? 'Admin Login' : 'Daftar Admin Baru'}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="admin@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
 
-      <Tabs defaultValue="login" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="login">Masuk Admin</TabsTrigger>
-          <TabsTrigger value="signup">Daftar Admin</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="login">
-          <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
-            <div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Masukkan password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          {!isLogin && (
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Nama Lengkap</Label>
               <Input
-                {...loginForm.register('email')}
-                type="email"
-                placeholder="Email Admin"
-                className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
-                disabled={isLoading}
+                id="fullName"
+                type="text"
+                placeholder="Masukkan nama lengkap"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
               />
-              {loginForm.formState.errors.email && (
-                <p className="text-red-500 text-sm mt-1">{loginForm.formState.errors.email.message}</p>
-              )}
             </div>
+          )}
 
-            <div>
-              <Input
-                {...loginForm.register('password')}
-                type="password"
-                placeholder="Password Admin"
-                className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
-                disabled={isLoading}
-              />
-              {loginForm.formState.errors.password && (
-                <p className="text-red-500 text-sm mt-1">{loginForm.formState.errors.password.message}</p>
-              )}
-            </div>
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-[#df5353] text-white font-bold py-3 px-4 rounded hover:bg-[#c84444] transition-colors"
-            >
-              {isLoading ? 'Memproses...' : 'Masuk sebagai Admin'}
-            </Button>
+          {success && (
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-700">{success}</AlertDescription>
+            </Alert>
+          )}
 
+          <Button 
+            type="submit" 
+            className="w-full bg-[#d4462d] hover:bg-[#b8391a]"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {isLogin ? 'Masuk...' : 'Mendaftar...'}
+              </>
+            ) : (
+              isLogin ? 'Masuk' : 'Daftar Admin'
+            )}
+          </Button>
+
+          <div className="text-center space-y-2">
             <Button
               type="button"
-              variant="outline"
-              onClick={handleResetPassword}
-              className="w-full border-[#df5353] text-[#df5353] hover:bg-[#df5353] hover:text-white"
+              variant="link"
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setError('');
+                setSuccess('');
+              }}
+              className="text-[#d4462d]"
             >
-              Lupa Password?
+              {isLogin ? 'Belum punya akun admin? Daftar' : 'Sudah punya akun? Login'}
             </Button>
-          </form>
-        </TabsContent>
-        
-        <TabsContent value="signup">
-          <form onSubmit={signUpForm.handleSubmit(onSignUp)} className="space-y-4">
-            <div>
-              <Input
-                {...signUpForm.register('fullName')}
-                placeholder="Nama Lengkap Admin"
-                className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
-                disabled={isLoading}
-              />
-              {signUpForm.formState.errors.fullName && (
-                <p className="text-red-500 text-sm mt-1">{signUpForm.formState.errors.fullName.message}</p>
-              )}
-            </div>
 
-            <div>
-              <Input
-                {...signUpForm.register('email')}
-                type="email"
-                placeholder="Email Admin"
-                className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
-                disabled={isLoading}
-              />
-              {signUpForm.formState.errors.email && (
-                <p className="text-red-500 text-sm mt-1">{signUpForm.formState.errors.email.message}</p>
-              )}
-            </div>
-
-            <div>
-              <Input
-                {...signUpForm.register('password')}
-                type="password"
-                placeholder="Password Admin"
-                className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
-                disabled={isLoading}
-              />
-              {signUpForm.formState.errors.password && (
-                <p className="text-red-500 text-sm mt-1">{signUpForm.formState.errors.password.message}</p>
-              )}
-            </div>
-
-            <div>
-              <Input
-                {...signUpForm.register('confirmPassword')}
-                type="password"
-                placeholder="Konfirmasi Password"
-                className="w-full p-3 rounded border border-[#df5353] bg-white text-[#df5353] font-bold"
-                disabled={isLoading}
-              />
-              {signUpForm.formState.errors.confirmPassword && (
-                <p className="text-red-500 text-sm mt-1">{signUpForm.formState.errors.confirmPassword.message}</p>
-              )}
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-[#df5353] text-white font-bold py-3 px-4 rounded hover:bg-[#c84444] transition-colors"
-            >
-              {isLoading ? 'Memproses...' : 'Daftar sebagai Admin'}
-            </Button>
-          </form>
-        </TabsContent>
-      </Tabs>
-    </div>
+            {isLogin && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleFixAccount}
+                disabled={loading}
+                className="text-xs"
+              >
+                Perbaiki Akun Admin
+              </Button>
+            )}
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
