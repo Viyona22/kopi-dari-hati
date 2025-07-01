@@ -7,14 +7,22 @@ export class ProfileService {
     try {
       console.log('Loading profile for user:', userId);
       
-      // Get user profile using RPC or direct query with proper typing
-      const { data: profile, error: profileError } = await supabase
-        .rpc('get_user_profile', { user_id: userId });
+      // Try to load profile from profiles table with join to user_roles
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          email,
+          full_name,
+          user_roles!inner(role)
+        `)
+        .eq('id', userId)
+        .single();
 
       if (profileError) {
-        console.error('Error loading profile via RPC, trying direct query:', profileError);
+        console.error('Error loading profile from database:', profileError);
         
-        // Fallback to direct query
+        // Fallback to user metadata if profile doesn't exist yet
         try {
           const { data: user } = await supabase.auth.getUser();
           if (user.user && user.user.id === userId) {
@@ -35,14 +43,14 @@ export class ProfileService {
         return null;
       }
 
-      if (profile) {
+      if (profileData && profileData.user_roles && profileData.user_roles.length > 0) {
         const userProfileData = {
-          id: profile.id,
-          email: profile.email,
-          full_name: profile.full_name,
-          role: profile.role
+          id: profileData.id,
+          email: profileData.email,
+          full_name: profileData.full_name || '',
+          role: profileData.user_roles[0].role
         };
-        console.log('User profile loaded:', userProfileData);
+        console.log('User profile loaded from database:', userProfileData);
         return userProfileData;
       }
 
@@ -61,20 +69,32 @@ export class ProfileService {
       const { data: user } = await supabase.auth.getUser();
       
       if (user.user && user.user.email === email) {
-        // Try to create profile via RPC
+        // Create profile entry
         const { error: profileError } = await supabase
-          .rpc('create_user_profile', {
-            user_id: user.user.id,
-            user_email: user.user.email,
-            user_full_name: user.user.user_metadata?.full_name || user.user.email,
-            user_role: 'admin'
+          .from('profiles')
+          .upsert({
+            id: user.user.id,
+            email: user.user.email,
+            full_name: user.user.user_metadata?.full_name || user.user.email
           });
 
         if (profileError) {
-          console.error('Error creating/updating profile via RPC:', profileError);
+          console.error('Error creating/updating profile:', profileError);
         }
 
-        return { success: !profileError };
+        // Create role entry
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .upsert({
+            user_id: user.user.id,
+            role: 'admin'
+          });
+
+        if (roleError) {
+          console.error('Error creating/updating role:', roleError);
+        }
+
+        return { success: !profileError && !roleError };
       }
       
       return { success: false, message: 'User not found or not logged in' };

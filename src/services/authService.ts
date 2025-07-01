@@ -29,18 +29,24 @@ export class AuthService {
       
       console.log('Sign up result:', { data, error });
       
-      // If signup was successful, the trigger should have created the profile
+      // If signup was successful, check if profile was created by trigger
       if (data?.user && !error) {
-        // Verify profile was created
-        const { data: profile } = await supabase
-          .rpc('get_user_profile', { user_id: data.user.id });
+        // Wait a moment for trigger to execute
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        console.log('Profile created by trigger:', profile);
+        // Try to get the profile to verify it was created
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .limit(1);
+        
+        console.log('Profile created by trigger:', profiles);
         
         return { 
           data, 
           error: null,
-          profileCreated: !!profile
+          profileCreated: !!profiles && profiles.length > 0
         };
       }
       

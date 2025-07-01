@@ -60,8 +60,9 @@ export function useAuth() {
     return await AuthService.signIn(email, password);
   };
 
-  const signUp = async (email: string, password: string, fullName: string, role: 'admin' | 'customer' = 'customer') => {
-    return await AuthService.signUp(email, password, fullName, role);
+  const signUp = async (email: string, password: string, fullName: string) => {
+    // Always create admin accounts through this form
+    return await AuthService.signUp(email, password, fullName, 'admin');
   };
 
   const signOut = async () => {

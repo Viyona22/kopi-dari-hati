@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthContext } from './AuthProvider';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
-import { AuthService } from '@/services/authService';
 import { ProfileService } from '@/services/profileService';
 
 export function LoginForm() {
@@ -52,7 +51,8 @@ export function LoginForm() {
         }
       } else {
         console.log('Attempting registration for:', email);
-        const { data, error } = await signUp(email, password, fullName, 'admin');
+        // Fix: Only pass 3 arguments - remove the role argument since it's set in metadata
+        const { data, error } = await signUp(email, password, fullName);
         
         if (error) {
           console.error('Registration error:', error);
