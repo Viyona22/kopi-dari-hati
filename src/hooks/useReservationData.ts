@@ -7,11 +7,13 @@ import { useAuthContext } from '@/components/auth/AuthProvider'
 export function useReservationData() {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
-  const { user } = useAuthContext()
+  const { user, userProfile } = useAuthContext()
 
   // Load reservations from Supabase
   const loadReservations = async () => {
     try {
+      console.log('Loading reservations for user:', user?.id, 'role:', userProfile?.role);
+      
       const { data, error } = await supabase
         .from('reservations')
         .select('*')
@@ -19,6 +21,7 @@ export function useReservationData() {
 
       if (error) throw error
       
+      console.log('Loaded reservations:', data?.length || 0);
       setReservations(data || [])
     } catch (error) {
       console.error('Error loading reservations:', error)
@@ -31,11 +34,17 @@ export function useReservationData() {
   // Save reservation to Supabase
   const saveReservation = async (reservation: Omit<Reservation, 'created_at'>) => {
     try {
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
       // Add user_id to reservation data
       const reservationData = {
         ...reservation,
-        user_id: user?.id
+        user_id: user.id
       }
+
+      console.log('Saving reservation with user_id:', reservationData);
 
       const { data, error } = await supabase
         .from('reservations')
@@ -49,7 +58,7 @@ export function useReservationData() {
       return data[0]
     } catch (error) {
       console.error('Error saving reservation:', error)
-      toast.error('Gagal menyimpan reservasi')
+      toast.error('Gagal menyimpan reservasi. Pastikan Anda sudah login.')
       throw error
     }
   }
@@ -93,8 +102,10 @@ export function useReservationData() {
   }
 
   useEffect(() => {
-    loadReservations()
-  }, [user])
+    if (user && userProfile) {
+      loadReservations()
+    }
+  }, [user, userProfile])
 
   return {
     reservations,

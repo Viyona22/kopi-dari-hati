@@ -45,6 +45,7 @@ export function CustomerAuthForm() {
   // Redirect if already logged in
   React.useEffect(() => {
     if (userProfile) {
+      console.log('User already logged in, redirecting...', userProfile);
       if (userProfile.role === 'admin') {
         navigate('/admin');
       } else {
@@ -56,14 +57,19 @@ export function CustomerAuthForm() {
   const onLogin = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
+      console.log('Attempting login for:', data.email);
       const { error } = await signIn(data.email, data.password);
       
       if (error) {
+        console.error('Login error:', error);
         toast.error('Email atau password salah. Silakan coba lagi.');
       } else {
+        console.log('Login successful');
         toast.success('Login berhasil!');
+        // Navigation will be handled by the useEffect above when userProfile updates
       }
     } catch (error) {
+      console.error('Login exception:', error);
       toast.error('Terjadi kesalahan saat login.');
     } finally {
       setIsLoading(false);
@@ -73,18 +79,22 @@ export function CustomerAuthForm() {
   const onSignUp = async (data: SignUpFormData) => {
     setIsLoading(true);
     try {
+      console.log('Attempting signup for:', data.email, data.fullName);
       const { error } = await signUp(data.email, data.password, data.fullName);
       
       if (error) {
+        console.error('Signup error:', error);
         if (error.message.includes('already registered')) {
           toast.error('Email sudah terdaftar. Silakan gunakan email lain atau login.');
         } else {
           toast.error('Gagal mendaftar. Silakan coba lagi.');
         }
       } else {
+        console.log('Signup successful');
         toast.success('Pendaftaran berhasil! Silakan cek email Anda untuk konfirmasi.');
       }
     } catch (error) {
+      console.error('Signup exception:', error);
       toast.error('Terjadi kesalahan saat mendaftar.');
     } finally {
       setIsLoading(false);

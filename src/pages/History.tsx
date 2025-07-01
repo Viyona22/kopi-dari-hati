@@ -128,10 +128,17 @@ function HistoryContent() {
                 </h3>
                 <p className="text-gray-600">
                   {activities.length === 0 
-                    ? "Belum ada pemesanan atau reservasi yang dibuat."
+                    ? userProfile?.role === 'admin' 
+                      ? "Belum ada pemesanan atau reservasi dari semua pelanggan."
+                      : "Belum ada pemesanan atau reservasi yang Anda buat."
                     : "Tidak ada aktivitas yang sesuai dengan filter yang dipilih."
                   }
                 </p>
+                {userProfile?.role === 'customer' && activities.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    Mulai dengan membuat pemesanan atau reservasi pertama Anda!
+                  </p>
+                )}
               </div>
             ) : (
               filteredActivities.map((activity) => (

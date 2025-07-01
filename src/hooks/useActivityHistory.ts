@@ -21,28 +21,39 @@ export function useActivityHistory() {
   const { user, userProfile } = useAuthContext();
 
   const loadActivities = async () => {
-    if (!user) {
+    if (!user || !userProfile) {
+      console.log('No user or profile, clearing activities');
       setActivities([]);
       setLoading(false);
       return;
     }
 
     try {
-      // Load purchases (pemesanan)
+      console.log('Loading activities for user:', user.id, 'role:', userProfile.role);
+
+      // Load purchases (pemesanan) - RLS will filter automatically based on role
       const { data: purchases, error: purchasesError } = await supabase
         .from('purchases')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (purchasesError) throw purchasesError;
+      if (purchasesError) {
+        console.error('Error loading purchases:', purchasesError);
+        throw purchasesError;
+      }
 
-      // Load reservations
+      // Load reservations - RLS will filter automatically based on role
       const { data: reservations, error: reservationsError } = await supabase
         .from('reservations')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (reservationsError) throw reservationsError;
+      if (reservationsError) {
+        console.error('Error loading reservations:', reservationsError);
+        throw reservationsError;
+      }
+
+      console.log('Raw data loaded - Purchases:', purchases?.length || 0, 'Reservations:', reservations?.length || 0);
 
       // Transform purchases to activities
       const purchaseActivities: Activity[] = (purchases || []).map(purchase => ({
@@ -82,6 +93,9 @@ export function useActivityHistory() {
       const allActivities = [...purchaseActivities, ...reservationActivities];
       allActivities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+      console.log('Final activities count:', allActivities.length);
+      console.log('User role:', userProfile.role, 'Activities for:', userProfile.role === 'admin' ? 'all users' : 'current user only');
+      
       setActivities(allActivities);
     } catch (error) {
       console.error('Error loading activities:', error);

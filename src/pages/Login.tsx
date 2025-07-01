@@ -13,6 +13,7 @@ export default function Login() {
   // If user is already logged in, redirect them
   React.useEffect(() => {
     if (userProfile) {
+      console.log('User already logged in on login page:', userProfile);
       window.location.href = userProfile.role === 'admin' ? '/admin' : '/history';
     }
   }, [userProfile]);

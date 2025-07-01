@@ -7,11 +7,13 @@ import { useAuthContext } from '@/components/auth/AuthProvider'
 export function usePurchaseData() {
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
-  const { user } = useAuthContext()
+  const { user, userProfile } = useAuthContext()
 
   // Load purchases from Supabase
   const loadPurchases = async () => {
     try {
+      console.log('Loading purchases for user:', user?.id, 'role:', userProfile?.role);
+      
       const { data, error } = await supabase
         .from('purchases')
         .select('*')
@@ -27,6 +29,7 @@ export function usePurchaseData() {
           : JSON.parse(purchase.order_items as string)
       })) || []
       
+      console.log('Loaded purchases:', transformedData.length);
       setPurchases(transformedData)
     } catch (error) {
       console.error('Error loading purchases:', error)
@@ -39,11 +42,17 @@ export function usePurchaseData() {
   // Save purchase to Supabase
   const savePurchase = async (purchase: Omit<Purchase, 'id' | 'created_at'>) => {
     try {
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
       // Add user_id to purchase data
       const purchaseData = {
         ...purchase,
-        user_id: user?.id
+        user_id: user.id
       }
+
+      console.log('Saving purchase with user_id:', purchaseData);
 
       const { data, error } = await supabase
         .from('purchases')
@@ -57,7 +66,7 @@ export function usePurchaseData() {
       return data[0]
     } catch (error) {
       console.error('Error saving purchase:', error)
-      toast.error('Gagal menyimpan pembelian')
+      toast.error('Gagal menyimpan pembelian. Pastikan Anda sudah login.')
       throw error
     }
   }
@@ -101,8 +110,10 @@ export function usePurchaseData() {
   }
 
   useEffect(() => {
-    loadPurchases()
-  }, [user])
+    if (user && userProfile) {
+      loadPurchases()
+    }
+  }, [user, userProfile])
 
   return {
     purchases,

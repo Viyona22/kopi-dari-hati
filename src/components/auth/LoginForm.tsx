@@ -16,22 +16,38 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const navigate = useNavigate();
-  const { signIn } = useAuthContext();
+  const { signIn, userProfile } = useAuthContext();
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema)
   });
 
+  // Redirect if already logged in
+  React.useEffect(() => {
+    if (userProfile) {
+      console.log('Admin already logged in, redirecting...', userProfile);
+      if (userProfile.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/history');
+      }
+    }
+  }, [userProfile, navigate]);
+
   const onSubmit = async (data: LoginFormData) => {
     try {
+      console.log('Admin login attempt for:', data.email);
       const { error } = await signIn(data.email, data.password);
       
       if (error) {
+        console.error('Admin login error:', error);
         toast.error('Email atau password salah. Silakan coba lagi.');
       } else {
+        console.log('Admin login successful');
         toast.success('Login berhasil! Selamat datang Admin.');
-        navigate('/admin');
+        // Navigation will be handled by the useEffect above when userProfile updates
       }
     } catch (error) {
+      console.error('Admin login exception:', error);
       toast.error('Terjadi kesalahan saat login.');
     }
   };
