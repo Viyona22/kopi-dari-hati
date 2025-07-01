@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -10,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AuthService } from '@/services/authService';
+import { ProfileService } from '@/services/profileService';
 
 const loginSchema = z.object({
   email: z.string().email('Email tidak valid'),
@@ -54,6 +54,34 @@ export function LoginForm() {
     }
   }, [userProfile, navigate]);
 
+  const handleFixAdminAccount = async (email: string) => {
+    try {
+      console.log('Attempting to fix admin account for:', email);
+      const result = await ProfileService.fixAdminAccount(email);
+      if (result.success) {
+        toast.success('Admin account berhasil diperbaiki! Silakan coba login lagi.');
+      } else {
+        toast.error(result.message || 'Gagal memperbaiki admin account.');
+      }
+    } catch (error) {
+      console.error('Error fixing admin account:', error);
+      toast.error('Terjadi kesalahan saat memperbaiki admin account.');
+    }
+  };
+
+  const handleResendConfirmation = async (email: string) => {
+    try {
+      const { error } = await AuthService.resendConfirmation(email);
+      if (error) {
+        toast.error('Gagal mengirim ulang email konfirmasi.');
+      } else {
+        toast.success('Email konfirmasi telah dikirim ulang! Silakan cek email Anda.');
+      }
+    } catch (error) {
+      toast.error('Terjadi kesalahan saat mengirim email konfirmasi.');
+    }
+  };
+
   const onLogin = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
@@ -62,10 +90,32 @@ export function LoginForm() {
       
       if (error) {
         console.error('Admin login error:', error);
+        
         if (error.message.includes('Email not confirmed')) {
-          toast.error('Email belum dikonfirmasi. Silakan cek email Anda atau hubungi administrator.');
+          toast.error(
+            'Email belum dikonfirmasi. Silakan cek email Anda.',
+            {
+              action: {
+                label: 'Kirim Ulang',
+                onClick: () => handleResendConfirmation(data.email)
+              }
+            }
+          );
         } else if (error.message.includes('Invalid login credentials')) {
-          toast.error('Email atau password salah. Silakan coba lagi.');
+          // Check if this might be an existing admin that needs fixing
+          if (data.email === 'kopidarihati@gmail.com') {
+            toast.error(
+              'Login gagal. Mungkin akun admin perlu diperbaiki.',
+              {
+                action: {
+                  label: 'Perbaiki Akun',
+                  onClick: () => handleFixAdminAccount(data.email)
+                }
+              }
+            );
+          } else {
+            toast.error('Email atau password salah. Silakan coba lagi atau daftar sebagai admin baru.');
+          }
         } else {
           toast.error('Gagal login: ' + error.message);
         }

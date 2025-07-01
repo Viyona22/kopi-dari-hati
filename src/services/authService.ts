@@ -42,4 +42,17 @@ export class AuthService {
     });
     return { error };
   }
+
+  // New method to resend confirmation email
+  static async resendConfirmation(email: string) {
+    console.log('Resending confirmation email for:', email);
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`
+      }
+    });
+    return { error };
+  }
 }
