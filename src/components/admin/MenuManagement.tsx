@@ -22,6 +22,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -183,18 +184,8 @@ export function MenuManagement() {
     }
     
     try {
-      // Generate unique ID
-      const generateId = () => {
-        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-          return crypto.randomUUID();
-        }
-        return `menu_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      };
-
-      const id = generateId();
-      
-      const itemToAdd: MenuItem = {
-        id,
+      // Don't set ID for new items - let database generate it
+      const itemToAdd: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'> = {
         name: newItem.name.trim(),
         price: Number(newItem.price),
         category: newItem.category,
@@ -311,6 +302,9 @@ export function MenuManagement() {
             <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Tambah Menu Baru</DialogTitle>
+                <DialogDescription>
+                  Isi formulir di bawah ini untuk menambahkan menu baru ke dalam sistem.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
