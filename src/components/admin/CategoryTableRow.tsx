@@ -8,7 +8,7 @@ import { TableCell, TableRow } from '@/components/ui/table';
 
 interface CategoryTableRowProps {
   category: Category;
-  onEdit: (category: Category) => Promise<void>;
+  onEdit: (category: Category) => Promise<any>;
   onDelete: (id: string) => Promise<void>;
 }
 

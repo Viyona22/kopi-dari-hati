@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 
 interface CategoryFormDialogProps {
-  onSave: (category: Omit<Category, 'created_at' | 'updated_at'>) => Promise<void>;
+  onSave: (category: Omit<Category, 'created_at' | 'updated_at'>) => Promise<any>;
 }
 
 export function CategoryFormDialog({ onSave }: CategoryFormDialogProps) {
