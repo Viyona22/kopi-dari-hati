@@ -7,29 +7,36 @@ export class ProfileService {
     try {
       console.log('Loading profile for user:', userId);
       
-      // Query profiles table with user_roles join
-      const { data, error } = await supabase
+      // First, get the profile data
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          email,
-          full_name,
-          user_roles!inner(role)
-        `)
+        .select('id, email, full_name')
         .eq('id', userId)
         .single();
 
-      if (error) {
-        console.error('Error loading user profile:', error);
+      if (profileError) {
+        console.error('Error loading profile:', profileError);
         return null;
       }
 
-      if (data && data.user_roles && Array.isArray(data.user_roles) && data.user_roles.length > 0) {
+      // Then, get the user role
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (roleError) {
+        console.error('Error loading user role:', roleError);
+        return null;
+      }
+
+      if (profileData && roleData) {
         const userProfile: UserProfile = {
-          id: data.id,
-          email: data.email || '',
-          full_name: data.full_name || data.email || '',
-          role: data.user_roles[0].role as 'admin' | 'customer'
+          id: profileData.id,
+          email: profileData.email || '',
+          full_name: profileData.full_name || profileData.email || '',
+          role: roleData.role as 'admin' | 'customer'
         };
         
         console.log('User profile loaded from database:', userProfile);
