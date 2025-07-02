@@ -40,6 +40,11 @@ export default function Login() {
                 </TabsContent>
                 
                 <TabsContent value="admin">
+                  <div className="text-center mb-4">
+                    <p className="text-sm text-gray-600">
+                      Khusus untuk administrator yang sudah terdaftar
+                    </p>
+                  </div>
                   <LoginForm />
                 </TabsContent>
               </Tabs>
