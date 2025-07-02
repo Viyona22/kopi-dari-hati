@@ -10,7 +10,7 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<any>;
-  signUp: (email: string, password: string, fullName: string) => Promise<any>;
+  signUp: (email: string, password: string, fullName: string, role?: 'admin' | 'customer') => Promise<any>;
   signOut: () => Promise<any>;
   isAdmin: boolean;
   isCustomer: boolean;

@@ -24,7 +24,7 @@ export class ProfileService {
         return null;
       }
 
-      if (data && data.user_roles && data.user_roles.length > 0) {
+      if (data && data.user_roles && Array.isArray(data.user_roles) && data.user_roles.length > 0) {
         const userProfile: UserProfile = {
           id: data.id,
           email: data.email || '',
