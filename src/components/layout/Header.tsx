@@ -53,11 +53,13 @@ export function Header() {
             
             {user ? (
               <>
-                <li>
-                  <Link to="/history" className="text-[#d4462d] hover:underline">
-                    Riwayat Saya
-                  </Link>
-                </li>
+                {userProfile?.role === 'customer' && (
+                  <li>
+                    <Link to="/history" className="text-[#d4462d] hover:underline">
+                      Riwayat Saya
+                    </Link>
+                  </li>
+                )}
                 {userProfile?.role === 'admin' && (
                   <li>
                     <Link to="/admin" className="text-[#d4462d] hover:underline">
