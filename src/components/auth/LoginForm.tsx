@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthContext } from './AuthProvider';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
-import { ProfileService } from '@/services/profileService';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -51,7 +50,8 @@ export function LoginForm() {
         }
       } else {
         console.log('Attempting registration for:', email);
-        const { data, error } = await signUp(email, password, fullName);
+        // Always create admin accounts through this form
+        const { data, error } = await signUp(email, password, fullName, 'admin');
         
         if (error) {
           console.error('Registration error:', error);
@@ -78,27 +78,6 @@ export function LoginForm() {
     } catch (err) {
       console.error('Auth error:', err);
       setError('Terjadi kesalahan. Silakan coba lagi.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFixAccount = async () => {
-    if (!email) {
-      setError('Masukkan email terlebih dahulu');
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const result = await ProfileService.fixAdminAccount(email);
-      if (result.success) {
-        setSuccess('Akun berhasil diperbaiki! Silakan login kembali.');
-      } else {
-        setError(result.message || 'Gagal memperbaiki akun');
-      }
-    } catch (error) {
-      setError('Terjadi kesalahan saat memperbaiki akun');
     } finally {
       setLoading(false);
     }
@@ -180,7 +159,7 @@ export function LoginForm() {
             )}
           </Button>
 
-          <div className="text-center space-y-2">
+          <div className="text-center">
             <Button
               type="button"
               variant="link"
@@ -193,19 +172,6 @@ export function LoginForm() {
             >
               {isLogin ? 'Belum punya akun admin? Daftar' : 'Sudah punya akun? Login'}
             </Button>
-
-            {isLogin && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleFixAccount}
-                disabled={loading}
-                className="text-xs"
-              >
-                Perbaiki Akun Admin
-              </Button>
-            )}
           </div>
         </form>
       </CardContent>

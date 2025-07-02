@@ -23,7 +23,8 @@ export class AuthService {
           data: {
             full_name: fullName,
             role: role
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/`
         }
       });
       
@@ -31,7 +32,7 @@ export class AuthService {
       
       if (data?.user && !error) {
         // Wait a moment for trigger to execute
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         return { 
           data, 
@@ -71,17 +72,5 @@ export class AuthService {
       email: email
     });
     return { error };
-  }
-
-  // Method to check if user exists in auth
-  static async checkUserExists(email: string) {
-    try {
-      // Try to trigger password reset to see if user exists
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-      return !error; // If no error, user exists
-    } catch (error) {
-      console.error('Error checking user existence:', error);
-      return false;
-    }
   }
 }

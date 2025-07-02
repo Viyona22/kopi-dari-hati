@@ -7,22 +7,32 @@ export class ProfileService {
     try {
       console.log('Loading profile for user:', userId);
       
-      // Since we can't directly query the profiles table due to type constraints,
-      // we'll get the user data from auth and construct the profile
-      const { data: user } = await supabase.auth.getUser();
-      
-      if (user.user && user.user.id === userId) {
-        // Get role from user metadata, default to customer
-        const userRole = user.user.user_metadata?.role || 'customer';
-        
-        const userProfile = {
-          id: userId,
-          email: user.user.email || '',
-          full_name: user.user.user_metadata?.full_name || user.user.email || '',
-          role: userRole as 'admin' | 'customer'
+      // Query profiles table with user_roles join
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          email,
+          full_name,
+          user_roles!inner(role)
+        `)
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error loading user profile:', error);
+        return null;
+      }
+
+      if (data && data.user_roles && data.user_roles.length > 0) {
+        const userProfile: UserProfile = {
+          id: data.id,
+          email: data.email || '',
+          full_name: data.full_name || data.email || '',
+          role: data.user_roles[0].role as 'admin' | 'customer'
         };
         
-        console.log('User profile loaded from auth metadata:', userProfile);
+        console.log('User profile loaded from database:', userProfile);
         return userProfile;
       }
 
@@ -33,34 +43,49 @@ export class ProfileService {
     }
   }
 
-  // Method to fix existing admin accounts
-  static async fixAdminAccount(email: string) {
+  // Method to update user profile
+  static async updateUserProfile(userId: string, updates: Partial<UserProfile>) {
     try {
-      console.log('Attempting to fix admin account for:', email);
+      console.log('Updating user profile for:', userId, updates);
       
-      const { data: user } = await supabase.auth.getUser();
-      
-      if (user.user && user.user.email === email) {
-        // Since we can't directly access the profiles/user_roles tables,
-        // we'll update the user metadata instead
-        const { error } = await supabase.auth.updateUser({
-          data: {
-            full_name: user.user.user_metadata?.full_name || user.user.email,
-            role: 'admin'
-          }
-        });
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: updates.full_name,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
 
-        if (error) {
-          console.error('Error updating user metadata:', error);
-        }
-
-        return { success: !error };
+      if (error) {
+        console.error('Error updating user profile:', error);
+        return { success: false, error };
       }
-      
-      return { success: false, message: 'User not found or not logged in' };
+
+      return { success: true };
     } catch (error) {
-      console.error('Error fixing admin account:', error);
-      return { success: false, message: 'Error fixing account' };
+      console.error('Error updating user profile:', error);
+      return { success: false, error };
+    }
+  }
+
+  // Method to get user role
+  static async getUserRole(userId: string): Promise<'admin' | 'customer' | null> {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (error || !data) {
+        console.error('Error getting user role:', error);
+        return null;
+      }
+
+      return data.role as 'admin' | 'customer';
+    } catch (error) {
+      console.error('Error getting user role:', error);
+      return null;
     }
   }
 }

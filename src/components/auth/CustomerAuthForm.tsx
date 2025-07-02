@@ -80,7 +80,8 @@ export function CustomerAuthForm() {
     setIsLoading(true);
     try {
       console.log('Attempting signup for:', data.email, data.fullName);
-      const { error } = await signUp(data.email, data.password, data.fullName);
+      // Always create customer accounts through this form
+      const { error } = await signUp(data.email, data.password, data.fullName, 'customer');
       
       if (error) {
         console.error('Signup error:', error);
