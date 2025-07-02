@@ -12,10 +12,15 @@ export class ProfileService {
         .from('profiles')
         .select('id, email, full_name')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (profileError) {
         console.error('Error loading profile:', profileError);
+        return null;
+      }
+
+      if (!profileData) {
+        console.log('No profile found for user:', userId);
         return null;
       }
 
@@ -24,26 +29,27 @@ export class ProfileService {
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (roleError) {
         console.error('Error loading user role:', roleError);
         return null;
       }
 
-      if (profileData && roleData) {
-        const userProfile: UserProfile = {
-          id: profileData.id,
-          email: profileData.email || '',
-          full_name: profileData.full_name || profileData.email || '',
-          role: roleData.role as 'admin' | 'customer'
-        };
-        
-        console.log('User profile loaded from database:', userProfile);
-        return userProfile;
+      if (!roleData) {
+        console.log('No role found for user:', userId);
+        return null;
       }
 
-      return null;
+      const userProfile: UserProfile = {
+        id: profileData.id,
+        email: profileData.email || '',
+        full_name: profileData.full_name || profileData.email || '',
+        role: roleData.role as 'admin' | 'customer'
+      };
+      
+      console.log('User profile loaded from database:', userProfile);
+      return userProfile;
     } catch (error) {
       console.error('Error loading user profile:', error);
       return null;
