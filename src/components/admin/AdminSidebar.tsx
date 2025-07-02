@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar"
-import { BarChart3, Users, ShoppingBag, UtensilsCrossed, Settings, Tag } from "lucide-react"
+import { BarChart3, Users, ShoppingBag, UtensilsCrossed, Settings, Tag, TrendingUp } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
 const menuItems = [
@@ -38,6 +38,11 @@ const menuItems = [
     title: "Kategori",
     url: "/admin/categories",
     icon: Tag,
+  },
+  {
+    title: "Menu Analytics",
+    url: "/admin/menu-analytics",
+    icon: TrendingUp,
   },
   {
     title: "Pengaturan",
