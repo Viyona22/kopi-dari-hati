@@ -5,16 +5,21 @@ import { LogOut, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { NotificationDropdown } from './NotificationDropdown';
+import { useAuthContext } from '@/components/auth/AuthProvider';
 
 export function AdminHeader() {
   const navigate = useNavigate();
+  const { signOut, userProfile } = useAuthContext();
 
-  const handleLogout = () => {
-    // Clear admin login status
-    localStorage.removeItem('isAdminLoggedIn');
-    localStorage.removeItem('adminEmail');
-    toast.success('Logout berhasil. Sampai jumpa!');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success('Logout berhasil. Sampai jumpa!');
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Terjadi kesalahan saat logout');
+    }
   };
 
   return (
@@ -26,7 +31,7 @@ export function AdminHeader() {
               Dashboard
             </h1>
             <p className="text-sm text-gray-600 font-medium">
-              Selamat datang kembali di panel admin
+              Selamat datang kembali, {userProfile?.full_name || 'Admin'}
             </p>
           </div>
         </div>
@@ -39,7 +44,7 @@ export function AdminHeader() {
               <User className="w-4 h-4 text-white" />
             </div>
             <div className="hidden sm:block">
-              <p className="text-sm font-semibold text-gray-900">Admin</p>
+              <p className="text-sm font-semibold text-gray-900">{userProfile?.full_name || 'Admin'}</p>
               <p className="text-xs text-gray-500">Administrator</p>
             </div>
           </div>

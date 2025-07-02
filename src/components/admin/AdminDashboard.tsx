@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { SummaryCards } from './SummaryCards';
+import { EnhancedSummaryCards } from './EnhancedSummaryCards';
 import { SalesChart } from './SalesChart';
 import { PopularMenuChart } from './PopularMenuChart';
 import { NotificationPanel } from './NotificationPanel';
@@ -10,7 +10,12 @@ import { PurchaseTable } from './PurchaseTable';
 export function AdminDashboard() {
   return (
     <div className="space-y-6">
-      <SummaryCards />
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Dashboard Overview</h1>
+        <p className="text-gray-600">Ringkasan performa bisnis dan aktivitas terkini</p>
+      </div>
+      
+      <EnhancedSummaryCards />
       
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
