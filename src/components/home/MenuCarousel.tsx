@@ -4,9 +4,11 @@ import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carouse
 import { useMenuData } from '@/hooks/useMenuData';
 import { Star, Heart } from 'lucide-react';
 import Autoplay from 'embla-carousel-autoplay';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export function MenuCarousel() {
   const { menuItems, loading } = useMenuData();
+  const isMobile = useIsMobile();
   
   const plugin = React.useRef(
     Autoplay({ delay: 3000, stopOnInteraction: true })
@@ -46,10 +48,10 @@ export function MenuCarousel() {
 
   return (
     <section className="mb-16">
-      <h2 className="text-xl font-bold text-[#d4462d] text-center mb-8">
+      <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-[#d4462d] text-center mb-8`}>
         MENU SPESIAL KAMI
       </h2>
-      <div className="max-w-4xl mx-auto">
+      <div className={`${isMobile ? 'max-w-full' : 'max-w-4xl'} mx-auto`}>
         <Carousel
           plugins={[plugin.current]}
           className="w-full"
@@ -58,14 +60,14 @@ export function MenuCarousel() {
         >
           <CarouselContent>
             {menuItems.map((item, index) => (
-              <CarouselItem key={item.id} className="md:basis-1/2 lg:basis-1/3">
+              <CarouselItem key={item.id} className={isMobile ? 'basis-full' : 'md:basis-1/2 lg:basis-1/3'}>
                 <div className="p-2">
                   <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100">
                     <div className="relative">
                       <img 
                         src={item.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png'} 
                         alt={item.name} 
-                        className="w-full h-40 object-cover" 
+                        className={`w-full ${isMobile ? 'h-48' : 'h-40'} object-cover`} 
                       />
                       
                       {/* Badge for first few items */}
@@ -81,8 +83,8 @@ export function MenuCarousel() {
                       </button>
                     </div>
                     
-                    <div className="p-4">
-                      <h3 className="text-base font-bold text-gray-800 mb-2">{item.name}</h3>
+                    <div className={`${isMobile ? 'p-5' : 'p-4'}`}>
+                      <h3 className={`${isMobile ? 'text-lg' : 'text-base'} font-bold text-gray-800 mb-2`}>{item.name}</h3>
                       
                       {/* Rating */}
                       <div className="flex items-center gap-1 mb-2">
@@ -91,10 +93,10 @@ export function MenuCarousel() {
                       </div>
                       
                       {item.description && (
-                        <p className="text-[#d4462d] text-xs line-clamp-2 mb-2">{item.description}</p>
+                        <p className={`text-[#d4462d] ${isMobile ? 'text-sm' : 'text-xs'} line-clamp-2 mb-2`}>{item.description}</p>
                       )}
                       
-                      <p className="text-lg font-bold text-[#d4462d]">
+                      <p className={`${isMobile ? 'text-xl' : 'text-lg'} font-bold text-[#d4462d]`}>
                         Rp {item.price.toLocaleString('id-ID')}
                       </p>
                     </div>
