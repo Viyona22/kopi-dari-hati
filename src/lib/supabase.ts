@@ -42,7 +42,11 @@ export interface Purchase {
   total_amount: number
   payment_method: string
   status: string
+  payment_status?: string
+  payment_deadline?: string
+  payment_proof_id?: string
   created_at?: string
+  user_id?: string
 }
 
 export interface Category {
