@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeSVG } from 'react-qr-code';
 import { CreditCard, Smartphone, Building } from 'lucide-react';
 
 interface PaymentMethodDisplayProps {
