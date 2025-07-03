@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -183,20 +184,20 @@ export function MenuManagement() {
       return;
     }
     
+    // Create new item object without ID - database will auto-generate it
+    const itemToAdd = {
+      name: newItem.name.trim(),
+      price: Number(newItem.price),
+      category: newItem.category,
+      description: newItem.description?.trim() || undefined,
+      image: newItem.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png',
+      badge_type: newItem.badge_type || null,
+      stock_quantity: Number(newItem.stock_quantity) || 50,
+      is_featured: Boolean(newItem.is_featured) || false,
+      sort_order: Number(newItem.sort_order) || 0
+    };
+    
     try {
-      // Create new item object without ID - database will auto-generate it
-      const itemToAdd = {
-        name: newItem.name.trim(),
-        price: Number(newItem.price),
-        category: newItem.category,
-        description: newItem.description?.trim() || undefined,
-        image: newItem.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png',
-        badge_type: newItem.badge_type || null,
-        stock_quantity: Number(newItem.stock_quantity) || 50,
-        is_featured: Boolean(newItem.is_featured) || false,
-        sort_order: Number(newItem.sort_order) || 0
-      };
-      
       console.log('4. Final item to save:', itemToAdd);
       console.log('5. Category verification - Selected:', itemToAdd.category, 'Exists:', categoryExists);
       
