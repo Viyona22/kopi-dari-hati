@@ -328,7 +328,7 @@ export function PurchaseTable() {
                               </div>
                             </div>
                             
-                            {/* Payment Proof Section - Updated */}
+                            {/* Payment Proof Section */}
                             {purchase.payment_status === 'uploaded' && (
                               <div>
                                 <label className="text-sm font-medium text-gray-600 mb-2 block">Bukti Pembayaran</label>
@@ -396,7 +396,7 @@ export function PurchaseTable() {
   );
 }
 
-// Component to view payment proof - Updated with better error handling
+// Updated PaymentProofViewer component with proper public URL handling
 function PaymentProofViewer({ purchaseId }: { purchaseId: string }) {
   const [proofUrl, setProofUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -407,7 +407,7 @@ function PaymentProofViewer({ purchaseId }: { purchaseId: string }) {
       try {
         console.log('Fetching payment proof for purchase:', purchaseId);
         
-        // First get the payment proof record
+        // Get the payment proof record
         const { data: proofData, error: proofError } = await supabase
           .from('payment_proofs')
           .select('proof_image_url')
@@ -416,7 +416,8 @@ function PaymentProofViewer({ purchaseId }: { purchaseId: string }) {
 
         if (proofError) {
           console.error('Error fetching payment proof record:', proofError);
-          throw proofError;
+          setError('Tidak ada data bukti pembayaran');
+          return;
         }
 
         if (!proofData?.proof_image_url) {
@@ -424,30 +425,23 @@ function PaymentProofViewer({ purchaseId }: { purchaseId: string }) {
           return;
         }
 
-        console.log('Found proof URL:', proofData.proof_image_url);
+        console.log('Found proof URL in database:', proofData.proof_image_url);
 
-        // Try to get the file from storage using the full URL
-        if (proofData.proof_image_url.includes('supabase')) {
-          // If it's already a full URL, use it directly
-          setProofUrl(proofData.proof_image_url);
-        } else {
-          // If it's a path, get the signed URL
-          const { data: signedUrl, error: urlError } = await supabase.storage
+        // Since the bucket is now public, we can use the URL directly
+        // Check if it's already a full URL or just a path
+        let finalUrl = proofData.proof_image_url;
+        
+        if (!proofData.proof_image_url.startsWith('http')) {
+          // If it's just a path, construct the public URL
+          const { data: publicUrlData } = supabase.storage
             .from('payment-proofs')
-            .createSignedUrl(proofData.proof_image_url, 3600); // 1 hour expiry
-
-          if (urlError) {
-            console.error('Error creating signed URL:', urlError);
-            // Fallback: try to get public URL
-            const { data: publicUrl } = supabase.storage
-              .from('payment-proofs')
-              .getPublicUrl(proofData.proof_image_url);
-            
-            setProofUrl(publicUrl.publicUrl);
-          } else {
-            setProofUrl(signedUrl.signedUrl);
-          }
+            .getPublicUrl(proofData.proof_image_url);
+          
+          finalUrl = publicUrlData.publicUrl;
         }
+
+        console.log('Final proof URL:', finalUrl);
+        setProofUrl(finalUrl);
 
       } catch (error) {
         console.error('Error in fetchPaymentProof:', error);
@@ -481,6 +475,9 @@ function PaymentProofViewer({ purchaseId }: { purchaseId: string }) {
         onError={(e) => {
           console.error('Image failed to load:', proofUrl);
           setError('Gagal memuat gambar bukti pembayaran');
+        }}
+        onLoad={() => {
+          console.log('Image loaded successfully:', proofUrl);
         }}
       />
       <div className="text-center mt-2">
