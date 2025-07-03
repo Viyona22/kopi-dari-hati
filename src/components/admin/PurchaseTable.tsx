@@ -23,6 +23,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -287,6 +288,9 @@ export function PurchaseTable() {
                         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle>Detail Pembelian</DialogTitle>
+                            <DialogDescription>
+                              Informasi lengkap pembelian dan bukti pembayaran
+                            </DialogDescription>
                           </DialogHeader>
                           <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
@@ -396,7 +400,7 @@ export function PurchaseTable() {
   );
 }
 
-// Updated PaymentProofViewer component with proper public URL handling
+// Fixed PaymentProofViewer component with better URL handling
 function PaymentProofViewer({ purchaseId }: { purchaseId: string }) {
   const [proofUrl, setProofUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -427,21 +431,42 @@ function PaymentProofViewer({ purchaseId }: { purchaseId: string }) {
 
         console.log('Found proof URL in database:', proofData.proof_image_url);
 
-        // Since the bucket is now public, we can use the URL directly
-        // Check if it's already a full URL or just a path
+        // Handle URL properly - ensure we construct the correct public URL
         let finalUrl = proofData.proof_image_url;
         
+        // If the URL doesn't start with http, it's likely a storage path
         if (!proofData.proof_image_url.startsWith('http')) {
-          // If it's just a path, construct the public URL
           const { data: publicUrlData } = supabase.storage
             .from('payment-proofs')
             .getPublicUrl(proofData.proof_image_url);
           
           finalUrl = publicUrlData.publicUrl;
+        } else if (proofData.proof_image_url.includes('/storage/v1/object/')) {
+          // If it's already a storage URL but might be malformed, reconstruct it
+          const pathParts = proofData.proof_image_url.split('/storage/v1/object/public/payment-proofs/');
+          if (pathParts.length > 1) {
+            const filePath = pathParts[1];
+            const { data: publicUrlData } = supabase.storage
+              .from('payment-proofs')
+              .getPublicUrl(filePath);
+            
+            finalUrl = publicUrlData.publicUrl;
+          }
         }
 
         console.log('Final proof URL:', finalUrl);
-        setProofUrl(finalUrl);
+        
+        // Test if the URL is valid by making a HEAD request
+        try {
+          const response = await fetch(finalUrl, { method: 'HEAD' });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          setProofUrl(finalUrl);
+        } catch (fetchError) {
+          console.error('URL validation failed:', fetchError);
+          setError('File bukti pembayaran tidak dapat diakses');
+        }
 
       } catch (error) {
         console.error('Error in fetchPaymentProof:', error);
