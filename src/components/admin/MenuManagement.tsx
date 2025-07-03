@@ -200,6 +200,11 @@ export function MenuManagement() {
       console.log('4. Final item to save:', itemToAdd);
       console.log('5. Category verification - Selected:', itemToAdd.category, 'Exists:', categoryExists);
       
+      // Additional debugging for database constraint issue
+      console.log('6. Checking category constraint compatibility...');
+      console.log('   - Category ID format:', typeof itemToAdd.category, itemToAdd.category);
+      console.log('   - All available category IDs:', categories.map(c => c.id));
+      
       await saveMenuItem(itemToAdd);
       
       // Reset form
@@ -216,10 +221,16 @@ export function MenuManagement() {
       });
       setIsAddDialogOpen(false);
       
-      console.log('6. Menu successfully added and form reset');
+      console.log('7. Menu successfully added and form reset');
     } catch (error) {
       console.error('Error in handleAddItem:', error);
-      // Error message already handled in saveMenuItem
+      
+      // Check if it's a constraint violation
+      if (error.message?.includes('check constraint') || error.message?.includes('violates')) {
+        console.error('DATABASE CONSTRAINT ERROR - Category not allowed:', itemToAdd.category);
+        toast.error('Kategori tidak valid untuk database. Silakan hubungi administrator untuk menambahkan kategori ini.');
+      }
+      // Error message already handled in saveMenuItem for other cases
     }
   };
 
