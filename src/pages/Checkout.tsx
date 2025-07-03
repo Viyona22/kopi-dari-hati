@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Layout } from '../components/layout/Layout';
 import { useCart } from '@/context/CartContext';
@@ -6,8 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
-import { toast } from '@/hooks/use-toast';
-import { usePurchaseData } from '@/hooks/usePurchaseData';
 
 import {
   Form,
@@ -34,7 +31,6 @@ type CheckoutFormValues = z.infer<typeof checkoutFormSchema>;
 
 export default function Checkout() {
   const { items, getTotalPrice, clearCart } = useCart();
-  const { savePurchase } = usePurchaseData();
   const totalPrice = getTotalPrice();
   const navigate = useNavigate();
   
@@ -49,51 +45,30 @@ export default function Checkout() {
   });
 
   async function onSubmit(data: CheckoutFormValues) {
-    try {
-      // Prepare order data for database
-      const orderData = {
-        customer_name: data.name,
-        customer_phone: data.phone,
-        customer_address: data.address || null,
-        order_items: items.map(item => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image
-        })),
-        total_amount: totalPrice,
-        payment_method: data.paymentMethod,
-        status: 'Diproses' as const
-      };
+    // Prepare order data
+    const orderData = {
+      customer_name: data.name,
+      customer_phone: data.phone,
+      customer_address: data.address || null,
+      order_items: items.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image
+      })),
+      total_amount: totalPrice,
+      payment_method: data.paymentMethod,
+      status: 'Diproses' as const
+    };
 
-      console.log("Saving order to database:", orderData);
+    // Clear cart before navigating
+    clearCart();
 
-      // Save to database
-      await savePurchase(orderData);
-
-      // Display success message
-      toast({
-        title: "Pesanan Berhasil",
-        description: "Pesanan Anda telah diterima dan disimpan. Terima kasih!",
-      });
-
-      // Clear cart
-      clearCart();
-      
-      // Redirect to home page
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
-      
-    } catch (error) {
-      console.error("Error saving order:", error);
-      toast({
-        title: "Terjadi Kesalahan",
-        description: "Gagal menyimpan pesanan. Silakan coba lagi.",
-        variant: "destructive"
-      });
-    }
+    // Navigate to payment page with order data
+    navigate('/payment', { 
+      state: { orderData } 
+    });
   }
 
   // Redirect if cart is empty
@@ -215,7 +190,7 @@ export default function Checkout() {
                   type="submit" 
                   className="w-full bg-[#d4462d] hover:bg-[#b33a25]"
                 >
-                  Place Order
+                  Lanjut ke Pembayaran
                 </Button>
               </form>
             </Form>

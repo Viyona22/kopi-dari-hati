@@ -153,6 +153,39 @@ export type Database = {
           },
         ]
       }
+      payment_proofs: {
+        Row: {
+          id: string
+          notes: string | null
+          proof_image_url: string
+          purchase_id: string
+          status: string
+          uploaded_at: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          id?: string
+          notes?: string | null
+          proof_image_url: string
+          purchase_id: string
+          status?: string
+          uploaded_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          id?: string
+          notes?: string | null
+          proof_image_url?: string
+          purchase_id?: string
+          status?: string
+          uploaded_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -188,7 +221,10 @@ export type Database = {
           customer_phone: string
           id: string
           order_items: Json
+          payment_deadline: string | null
           payment_method: string
+          payment_proof_id: string | null
+          payment_status: string | null
           status: string
           total_amount: number
           user_id: string | null
@@ -200,7 +236,10 @@ export type Database = {
           customer_phone: string
           id?: string
           order_items: Json
+          payment_deadline?: string | null
           payment_method: string
+          payment_proof_id?: string | null
+          payment_status?: string | null
           status?: string
           total_amount: number
           user_id?: string | null
@@ -212,7 +251,10 @@ export type Database = {
           customer_phone?: string
           id?: string
           order_items?: Json
+          payment_deadline?: string | null
           payment_method?: string
+          payment_proof_id?: string | null
+          payment_status?: string | null
           status?: string
           total_amount?: number
           user_id?: string | null
