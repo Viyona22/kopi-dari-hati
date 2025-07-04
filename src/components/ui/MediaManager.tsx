@@ -6,8 +6,8 @@ export function MediaManager() {
     // Cleanup function untuk mengatasi media playback conflicts
     const handleMediaConflict = () => {
       // Pause semua audio/video elements yang sedang playing
-      const audioElements = document.querySelectorAll('audio');
-      const videoElements = document.querySelectorAll('video');
+      const audioElements = document.querySelectorAll('audio') as NodeListOf<HTMLAudioElement>;
+      const videoElements = document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>;
       
       audioElements.forEach(audio => {
         if (!audio.paused) {
@@ -27,7 +27,7 @@ export function MediaManager() {
       const target = event.target as HTMLMediaElement;
       
       // Pause other media elements when one starts playing
-      const allMedia = document.querySelectorAll('audio, video');
+      const allMedia = document.querySelectorAll('audio, video') as NodeListOf<HTMLMediaElement>;
       allMedia.forEach(media => {
         if (media !== target && !media.paused) {
           media.pause();
