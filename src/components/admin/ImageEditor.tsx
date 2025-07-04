@@ -52,325 +52,118 @@ export function ImageEditor({
   const [quality, setQuality] = useState([0.9]);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState('0');
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingError, setLoadingError] = useState<string | null>(null);
-  const [canvasReady, setCanvasReady] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
 
   // Initialize canvas
   useEffect(() => {
     if (!isOpen || !canvasRef.current) return;
 
-    console.log('🎨 Initializing canvas...');
-    setDebugInfo('Initializing canvas...');
+    console.log('Initializing canvas...');
     
-    try {
-      const canvas = new FabricCanvas(canvasRef.current, {
-        width: maxWidth,
-        height: maxHeight,
-        backgroundColor: '#f8f9fa',
-        selection: true,
-      });
+    const canvas = new FabricCanvas(canvasRef.current, {
+      width: maxWidth,
+      height: maxHeight,
+      backgroundColor: '#ffffff',
+    });
 
-      // Add grid pattern for better visibility
-      const gridSize = 20;
-      const grid = [];
-      for (let i = 0; i < maxWidth / gridSize; i++) {
-        grid.push(`M${i * gridSize},0 L${i * gridSize},${maxHeight}`);
-      }
-      for (let i = 0; i < maxHeight / gridSize; i++) {
-        grid.push(`M0,${i * gridSize} L${maxWidth},${i * gridSize}`);
-      }
+    setFabricCanvas(canvas);
+    console.log('Canvas initialized successfully');
 
-      canvas.renderAll();
-      
-      setFabricCanvas(canvas);
-      setCanvasReady(true);
-      setDebugInfo('Canvas ready');
-      console.log('✅ Canvas initialized successfully');
-
-      return () => {
-        console.log('🗑️ Disposing canvas...');
-        setCanvasReady(false);
-        setDebugInfo('Canvas disposed');
-        canvas.dispose();
-      };
-    } catch (error) {
-      console.error('❌ Error initializing canvas:', error);
-      setLoadingError('Failed to initialize canvas');
-      setDebugInfo(`Canvas error: ${error}`);
-    }
+    return () => {
+      console.log('Disposing canvas...');
+      canvas.dispose();
+    };
   }, [isOpen, maxWidth, maxHeight]);
 
-  // Load image with multiple strategies
+  // Load image
   useEffect(() => {
-    if (!fabricCanvas || !imageUrl || !canvasReady) {
-      console.log('⏳ Waiting for canvas or image URL...');
-      return;
-    }
+    if (!fabricCanvas || !imageUrl || !isOpen) return;
 
-    console.log('🖼️ Starting image load process:', imageUrl);
+    console.log('Loading image:', imageUrl);
     setIsLoading(true);
-    setLoadingError(null);
-    setDebugInfo(`Loading image: ${imageUrl}`);
+    setError(null);
 
-    const loadImageWithStrategies = async () => {
+    const loadImage = async () => {
       try {
-        // Strategy 1: Direct URL loading with FabricImage.fromURL
-        console.log('📥 Attempting Strategy 1: FabricImage.fromURL');
-        setDebugInfo('Strategy 1: Direct URL loading...');
+        // Simple approach - just use FabricImage.fromURL
+        const img = await FabricImage.fromURL(imageUrl);
         
-        const fabricImg = await FabricImage.fromURL(imageUrl);
+        console.log('Image loaded successfully');
         
-        if (!fabricImg) {
-          throw new Error('FabricImage.fromURL returned null');
-        }
-
-        console.log('✅ Image loaded successfully with Strategy 1');
-        setDebugInfo('Image loaded successfully');
+        // Scale image to fit canvas
+        const imgWidth = img.width || 100;
+        const imgHeight = img.height || 100;
+        const scale = Math.min(
+          (maxWidth * 0.8) / imgWidth,
+          (maxHeight * 0.8) / imgHeight,
+          1
+        );
         
-        // Calculate scale to fit canvas
-        const imgWidth = fabricImg.width || 100;
-        const imgHeight = fabricImg.height || 100;
-        const canvasWidth = fabricCanvas.getWidth();
-        const canvasHeight = fabricCanvas.getHeight();
+        img.scale(scale);
         
-        const maxImgWidth = canvasWidth * 0.8;
-        const maxImgHeight = canvasHeight * 0.8;
-        
-        const scaleX = maxImgWidth / imgWidth;
-        const scaleY = maxImgHeight / imgHeight;
-        const scale = Math.min(scaleX, scaleY, 1);
-        
-        console.log('📏 Calculated scaling:', { scaleX, scaleY, finalScale: scale });
-        setDebugInfo(`Scaling image: ${scale.toFixed(2)}x`);
-
-        // Apply scaling and positioning
-        fabricImg.scale(scale);
-        
-        const scaledWidth = imgWidth * scale;
-        const scaledHeight = imgHeight * scale;
-        
-        fabricImg.set({
-          left: (canvasWidth - scaledWidth) / 2,
-          top: (canvasHeight - scaledHeight) / 2,
-          selectable: true,
-          evented: true,
-        });
-
-        console.log('📍 Image positioned at:', {
-          left: fabricImg.left,
-          top: fabricImg.top,
-          scaledWidth,
-          scaledHeight
+        // Center the image
+        img.set({
+          left: (maxWidth - imgWidth * scale) / 2,
+          top: (maxHeight - imgHeight * scale) / 2,
         });
 
         // Clear canvas and add image
         fabricCanvas.clear();
-        fabricCanvas.add(fabricImg);
-        fabricCanvas.setActiveObject(fabricImg);
-        fabricCanvas.requestRenderAll();
+        fabricCanvas.add(img);
+        fabricCanvas.setActiveObject(img);
+        fabricCanvas.renderAll();
         
-        console.log('🎯 Canvas objects after adding image:', fabricCanvas.getObjects().length);
-
-        setCurrentImage(fabricImg);
+        setCurrentImage(img);
         setIsLoading(false);
-        setDebugInfo('Image ready for editing');
         
-        console.log('✅ Image successfully added to canvas');
-
-      } catch (error) {
-        console.error('❌ Strategy 1 failed, trying Strategy 2:', error);
-        setDebugInfo('Strategy 1 failed, trying alternative...');
+        console.log('Image added to canvas successfully');
         
-        try {
-          // Strategy 2: Using HTML Image element
-          console.log('📥 Attempting Strategy 2: HTML Image element');
-          
-          const imgElement = new Image();
-          
-          const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
-            imgElement.onload = () => {
-              console.log('✅ Image element loaded successfully');
-              resolve(imgElement);
-            };
-            
-            imgElement.onerror = (error) => {
-              console.error('❌ Image element failed to load:', error);
-              reject(new Error('Failed to load image element'));
-            };
-          });
-
-          // Remove CORS restrictions for internal images
-          if (imageUrl.includes(window.location.origin) || imageUrl.includes('supabase')) {
-            console.log('🔓 Using same-origin image, no CORS needed');
-          } else {
-            imgElement.crossOrigin = 'anonymous';
-          }
-          
-          imgElement.src = imageUrl;
-          
-          const loadedImgElement = await imageLoadPromise;
-          console.log('🔄 Converting to FabricImage...');
-          
-          const fabricImg = await FabricImage.fromElement(loadedImgElement);
-          
-          if (!fabricImg) {
-            throw new Error('Failed to create FabricImage from element');
-          }
-
-          console.log('✅ FabricImage created successfully with Strategy 2');
-          
-          // Apply same scaling and positioning logic
-          const imgWidth = fabricImg.width || 100;
-          const imgHeight = fabricImg.height || 100;
-          const canvasWidth = fabricCanvas.getWidth();
-          const canvasHeight = fabricCanvas.getHeight();
-          
-          const maxImgWidth = canvasWidth * 0.8;
-          const maxImgHeight = canvasHeight * 0.8;
-          
-          const scaleX = maxImgWidth / imgWidth;
-          const scaleY = maxImgHeight / imgHeight;
-          const scale = Math.min(scaleX, scaleY, 1);
-          
-          fabricImg.scale(scale);
-          
-          const scaledWidth = imgWidth * scale;
-          const scaledHeight = imgHeight * scale;
-          
-          fabricImg.set({
-            left: (canvasWidth - scaledWidth) / 2,
-            top: (canvasHeight - scaledHeight) / 2,
-            selectable: true,
-            evented: true,
-          });
-
-          fabricCanvas.clear();
-          fabricCanvas.add(fabricImg);
-          fabricCanvas.setActiveObject(fabricImg);
-          fabricCanvas.requestRenderAll();
-          
-          setCurrentImage(fabricImg);
-          setIsLoading(false);
-          setDebugInfo('Image loaded with fallback method');
-          
-          console.log('✅ Image successfully loaded with Strategy 2');
-          
-        } catch (fallbackError) {
-          console.error('❌ All strategies failed:', fallbackError);
-          setLoadingError('Failed to load image. Please try a different image.');
-          setDebugInfo(`All loading strategies failed: ${fallbackError}`);
-          setIsLoading(false);
-        }
+      } catch (err) {
+        console.error('Error loading image:', err);
+        setError('Failed to load image. Please try again.');
+        setIsLoading(false);
       }
     };
 
-    // Add timeout for loading
-    const timeout = setTimeout(() => {
-      console.error('⏰ Image loading timeout');
-      setLoadingError('Image loading timeout');
-      setDebugInfo('Loading timeout');
-      setIsLoading(false);
-    }, 10000);
-
-    loadImageWithStrategies().finally(() => {
-      clearTimeout(timeout);
-    });
-    
-  }, [fabricCanvas, imageUrl, maxWidth, maxHeight, canvasReady]);
+    loadImage();
+  }, [fabricCanvas, imageUrl, isOpen, maxWidth, maxHeight]);
 
   const rotateImage = (degrees: number) => {
     if (!currentImage || !fabricCanvas) return;
     
-    console.log(`🔄 Rotating image by ${degrees} degrees`);
     const currentAngle = currentImage.angle || 0;
     currentImage.set('angle', currentAngle + degrees);
-    fabricCanvas.requestRenderAll();
-    setDebugInfo(`Rotated ${degrees}°`);
+    fabricCanvas.renderAll();
   };
 
   const flipImage = (direction: 'horizontal' | 'vertical') => {
     if (!currentImage || !fabricCanvas) return;
 
-    console.log(`🔄 Flipping image ${direction}`);
     if (direction === 'horizontal') {
       currentImage.set('flipX', !currentImage.flipX);
     } else {
       currentImage.set('flipY', !currentImage.flipY);
     }
     
-    fabricCanvas.requestRenderAll();
-    setDebugInfo(`Flipped ${direction}`);
+    fabricCanvas.renderAll();
   };
 
-  const resetImage = async () => {
+  const resetImage = () => {
     if (!fabricCanvas || !imageUrl) return;
-
-    console.log('🔄 Resetting image to original state');
-    setIsLoading(true);
-    setLoadingError(null);
-    setDebugInfo('Resetting image...');
     
-    try {
-      const fabricImg = await FabricImage.fromURL(imageUrl);
-      
-      if (!fabricImg) {
-        throw new Error('Failed to reset image');
-      }
-      
-      // Apply original scaling and positioning
-      const imgWidth = fabricImg.width || 100;
-      const imgHeight = fabricImg.height || 100;
-      const canvasWidth = fabricCanvas.getWidth();
-      const canvasHeight = fabricCanvas.getHeight();
-      
-      const maxImgWidth = canvasWidth * 0.8;
-      const maxImgHeight = canvasHeight * 0.8;
-      
-      const scaleX = maxImgWidth / imgWidth;
-      const scaleY = maxImgHeight / imgHeight;
-      const scale = Math.min(scaleX, scaleY, 1);
-      
-      fabricImg.scale(scale);
-      
-      const scaledWidth = imgWidth * scale;
-      const scaledHeight = imgHeight * scale;
-      
-      fabricImg.set({
-        left: (canvasWidth - scaledWidth) / 2,
-        top: (canvasHeight - scaledHeight) / 2,
-        selectable: true,
-        evented: true,
-        angle: 0,
-        flipX: false,
-        flipY: false,
-      });
-
-      fabricCanvas.clear();
-      fabricCanvas.add(fabricImg);
-      fabricCanvas.setActiveObject(fabricImg);
-      fabricCanvas.requestRenderAll();
-      
-      setCurrentImage(fabricImg);
-      setSelectedAspectRatio('0');
-      setIsLoading(false);
-      setDebugInfo('Image reset complete');
-      
-      console.log('✅ Image reset successful');
-    } catch (error) {
-      console.error('❌ Error resetting image:', error);
-      toast.error('Failed to reset image');
-      setDebugInfo(`Reset failed: ${error}`);
-      setIsLoading(false);
-    }
+    // Simply reload the image
+    setCurrentImage(null);
+    setSelectedAspectRatio('0');
+    
+    // Trigger image reload
+    const canvas = fabricCanvas;
+    setFabricCanvas(null);
+    setTimeout(() => setFabricCanvas(canvas), 100);
   };
 
   const applyAspectRatio = (ratio: number) => {
     if (!currentImage || !fabricCanvas || ratio === 0) return;
 
-    console.log('📐 Applying aspect ratio:', ratio);
-    setDebugInfo(`Applying aspect ratio: ${ratio}`);
-    
     const currentWidth = currentImage.getScaledWidth();
     const currentHeight = currentImage.getScaledHeight();
     
@@ -391,16 +184,12 @@ export function ImageEditor({
     currentImage.scale(scale);
     
     // Re-center the image
-    const canvasWidth = fabricCanvas.getWidth();
-    const canvasHeight = fabricCanvas.getHeight();
-    
     currentImage.set({
-      left: (canvasWidth - newWidth) / 2,
-      top: (canvasHeight - newHeight) / 2
+      left: (maxWidth - newWidth) / 2,
+      top: (maxHeight - newHeight) / 2
     });
     
-    fabricCanvas.requestRenderAll();
-    setDebugInfo(`Aspect ratio applied: ${ratio}`);
+    fabricCanvas.renderAll();
   };
 
   const handleAspectRatioChange = (value: string) => {
@@ -414,39 +203,31 @@ export function ImageEditor({
   const handleSave = async () => {
     if (!fabricCanvas) return;
 
-    console.log('💾 Saving edited image...');
     setIsLoading(true);
-    setDebugInfo('Saving image...');
     
     try {
       const dataURL = fabricCanvas.toDataURL({
         format: 'jpeg',
         quality: quality[0],
-        multiplier: 1,
       });
 
       // Convert dataURL to blob
       const response = await fetch(dataURL);
       const blob = await response.blob();
 
-      console.log('✅ Image saved successfully, blob size:', blob.size);
-      setDebugInfo(`Saved: ${(blob.size / 1024).toFixed(1)}KB`);
       onSave(blob);
-      toast.success('Image successfully edited');
+      toast.success('Image saved successfully');
       onClose();
     } catch (error) {
-      console.error('❌ Error saving image:', error);
+      console.error('Error saving image:', error);
       toast.error('Failed to save image');
-      setDebugInfo(`Save failed: ${error}`);
     }
+    
     setIsLoading(false);
   };
 
   const handleClose = () => {
-    console.log('🚪 Closing image editor');
-    setLoadingError(null);
-    setCanvasReady(false);
-    setDebugInfo('');
+    setError(null);
     onClose();
   };
 
@@ -464,12 +245,10 @@ export function ImageEditor({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Debug Info */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-              <div>Canvas: {canvasReady ? '✅' : '❌'} | Objects: {fabricCanvas?.getObjects().length || 0}</div>
-              <div>URL: {imageUrl ? imageUrl.substring(0, 50) + '...' : '❌'}</div>
-              <div>Status: {debugInfo}</div>
+          {/* Error State */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+              <p>{error}</p>
             </div>
           )}
 
@@ -481,30 +260,23 @@ export function ImageEditor({
             </div>
           )}
 
-          {/* Error State */}
-          {loadingError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-              <p>{loadingError}</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-2"
-                onClick={() => window.location.reload()}
-              >
-                Reload
-              </Button>
-            </div>
-          )}
+          {/* Canvas */}
+          <div className="flex justify-center p-4 bg-gray-100 rounded-lg">
+            <canvas
+              ref={canvasRef}
+              className="border-2 border-gray-300 rounded shadow-sm bg-white"
+              style={{ maxWidth: '100%', maxHeight: '400px' }}
+            />
+          </div>
 
           {/* Toolbar */}
-          {canvasReady && !isLoading && !loadingError && (
+          {currentImage && !isLoading && (
             <>
               <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => rotateImage(-90)}
-                  disabled={isLoading || !currentImage}
                 >
                   <RotateCcw className="h-4 w-4 mr-1" />
                   Rotate Left
@@ -514,7 +286,6 @@ export function ImageEditor({
                   variant="outline"
                   size="sm"
                   onClick={() => rotateImage(90)}
-                  disabled={isLoading || !currentImage}
                 >
                   <RotateCw className="h-4 w-4 mr-1" />
                   Rotate Right
@@ -524,7 +295,6 @@ export function ImageEditor({
                   variant="outline"
                   size="sm"
                   onClick={() => flipImage('horizontal')}
-                  disabled={isLoading || !currentImage}
                 >
                   <FlipHorizontal className="h-4 w-4 mr-1" />
                   Flip H
@@ -534,7 +304,6 @@ export function ImageEditor({
                   variant="outline"
                   size="sm"
                   onClick={() => flipImage('vertical')}
-                  disabled={isLoading || !currentImage}
                 >
                   <FlipVertical className="h-4 w-4 mr-1" />
                   Flip V
@@ -544,7 +313,6 @@ export function ImageEditor({
                   variant="outline"
                   size="sm"
                   onClick={resetImage}
-                  disabled={isLoading || !currentImage}
                 >
                   <RefreshCw className="h-4 w-4 mr-1" />
                   Reset
@@ -581,32 +349,18 @@ export function ImageEditor({
                   />
                 </div>
               </div>
-
-              {/* Canvas */}
-              <div className="flex justify-center p-4 bg-gray-100 rounded-lg">
-                <canvas
-                  ref={canvasRef}
-                  className="border-2 border-gray-300 rounded shadow-sm max-w-full max-h-[400px] bg-white"
-                  style={{ display: canvasReady ? 'block' : 'none' }}
-                />
-                {!canvasReady && (
-                  <div className="w-full h-[400px] bg-gray-200 rounded flex items-center justify-center">
-                    <span className="text-gray-500">Initializing canvas...</span>
-                  </div>
-                )}
-              </div>
             </>
           )}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={handleClose} disabled={isLoading}>
+            <Button variant="outline" onClick={handleClose}>
               <X className="h-4 w-4 mr-1" />
               Cancel
             </Button>
             <Button 
               onClick={handleSave} 
-              disabled={isLoading || !!loadingError || !currentImage} 
+              disabled={isLoading || !!error || !currentImage} 
               className="bg-amber-600 hover:bg-amber-700"
             >
               <Download className="h-4 w-4 mr-1" />
