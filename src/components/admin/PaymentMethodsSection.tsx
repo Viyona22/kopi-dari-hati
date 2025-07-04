@@ -22,8 +22,8 @@ export function PaymentMethodsSection() {
   const [bankEnabled, setBankEnabled] = useState(getSetting('payment_bank_enabled', true));
   const [bankAccount, setBankAccount] = useState(getSetting('payment_bank_account', {
     bank: 'BCA',
-    account_number: '',
-    account_name: ''
+    account_number: '1234567890',
+    account_name: 'Kopi dari Hati'
   }));
   
   // E-wallet Settings
@@ -33,6 +33,11 @@ export function PaymentMethodsSection() {
     ovo: false,
     dana: false
   }));
+  const [ewalletContacts, setEwalletContacts] = useState(getSetting('payment_ewallet_contacts', {
+    gopay: '',
+    ovo: '',
+    dana: ''
+  }));
 
   const handleSave = async () => {
     const success = await Promise.all([
@@ -41,11 +46,14 @@ export function PaymentMethodsSection() {
       updateSetting('payment_bank_enabled', bankEnabled, 'payment'),
       updateSetting('payment_bank_account', bankAccount, 'payment'),
       updateSetting('payment_ewallet_enabled', ewalletEnabled, 'payment'),
-      updateSetting('payment_ewallet_options', ewalletOptions, 'payment')
+      updateSetting('payment_ewallet_options', ewalletOptions, 'payment'),
+      updateSetting('payment_ewallet_contacts', ewalletContacts, 'payment')
     ]);
 
     if (success.every(Boolean)) {
       toast.success('Pengaturan metode pembayaran berhasil disimpan');
+      // Trigger refresh event
+      window.dispatchEvent(new CustomEvent('settings-updated'));
     }
   };
 
@@ -113,7 +121,7 @@ export function PaymentMethodsSection() {
                 <Label htmlFor="bank-name">Nama Bank</Label>
                 <Input
                   id="bank-name"
-                  value={bankAccount.bank}
+                  value={bankAccount.bank || ''}
                   onChange={(e) => setBankAccount({...bankAccount, bank: e.target.value})}
                   placeholder="Contoh: BCA, Mandiri"
                 />
@@ -122,7 +130,7 @@ export function PaymentMethodsSection() {
                 <Label htmlFor="account-number">Nomor Rekening</Label>
                 <Input
                   id="account-number"
-                  value={bankAccount.account_number}
+                  value={bankAccount.account_number || ''}
                   onChange={(e) => setBankAccount({...bankAccount, account_number: e.target.value})}
                   placeholder="1234567890"
                 />
@@ -131,7 +139,7 @@ export function PaymentMethodsSection() {
                 <Label htmlFor="account-name">Nama Pemegang</Label>
                 <Input
                   id="account-name"
-                  value={bankAccount.account_name}
+                  value={bankAccount.account_name || ''}
                   onChange={(e) => setBankAccount({...bankAccount, account_name: e.target.value})}
                   placeholder="Nama sesuai rekening"
                 />
@@ -158,31 +166,30 @@ export function PaymentMethodsSection() {
           </div>
           
           {ewalletEnabled && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="gopay">GoPay</Label>
-                <Switch
-                  id="gopay"
-                  checked={ewalletOptions.gopay}
-                  onCheckedChange={(checked) => setEwalletOptions({...ewalletOptions, gopay: checked})}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="ovo">OVO</Label>
-                <Switch
-                  id="ovo"
-                  checked={ewalletOptions.ovo}
-                  onCheckedChange={(checked) => setEwalletOptions({...ewalletOptions, ovo: checked})}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="dana">DANA</Label>
-                <Switch
-                  id="dana"
-                  checked={ewalletOptions.dana}
-                  onCheckedChange={(checked) => setEwalletOptions({...ewalletOptions, dana: checked})}
-                />
-              </div>
+            <div className="space-y-4">
+              {(['gopay', 'ovo', 'dana'] as const).map((wallet) => (
+                <div key={wallet} className="border rounded-lg p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor={wallet} className="text-base font-medium capitalize">{wallet.toUpperCase()}</Label>
+                    <Switch
+                      id={wallet}
+                      checked={ewalletOptions[wallet] || false}
+                      onCheckedChange={(checked) => setEwalletOptions({...ewalletOptions, [wallet]: checked})}
+                    />
+                  </div>
+                  {ewalletOptions[wallet] && (
+                    <div className="space-y-2">
+                      <Label htmlFor={`${wallet}-contact`}>Nomor {wallet.toUpperCase()}</Label>
+                      <Input
+                        id={`${wallet}-contact`}
+                        value={ewalletContacts[wallet] || ''}
+                        onChange={(e) => setEwalletContacts({...ewalletContacts, [wallet]: e.target.value})}
+                        placeholder={`Masukkan nomor ${wallet.toUpperCase()}`}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>

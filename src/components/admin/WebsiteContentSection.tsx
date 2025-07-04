@@ -35,16 +35,23 @@ export function WebsiteContentSection() {
 
       const newImages = [...atmosphereImages, publicUrlData.publicUrl];
       setAtmosphereImages(newImages);
-      toast.success('Gambar berhasil diunggah');
+      
+      // Auto-save when image is uploaded
+      await updateSetting('atmosphere_images', newImages, 'content');
+      toast.success('Gambar berhasil diunggah dan disimpan');
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error('Gagal mengunggah gambar');
     }
   };
 
-  const handleImageRemove = (index: number) => {
+  const handleImageRemove = async (index: number) => {
     const newImages = atmosphereImages.filter((_, i) => i !== index);
     setAtmosphereImages(newImages);
+    
+    // Auto-save when image is removed
+    await updateSetting('atmosphere_images', newImages, 'content');
+    toast.success('Gambar berhasil dihapus');
   };
 
   const handleSave = async () => {
@@ -57,6 +64,8 @@ export function WebsiteContentSection() {
 
     if (success.every(Boolean)) {
       toast.success('Konten website berhasil disimpan');
+      // Trigger refresh event
+      window.dispatchEvent(new CustomEvent('settings-updated'));
     }
   };
 
@@ -146,6 +155,10 @@ export function WebsiteContentSection() {
             onImageRemove={() => {}}
             className="border-dashed border-2 border-gray-300 p-4 rounded-lg"
           />
+          
+          <p className="text-sm text-gray-500">
+            Gambar akan otomatis disimpan setelah diunggah dan langsung muncul di halaman utama website.
+          </p>
         </div>
 
         <Button 

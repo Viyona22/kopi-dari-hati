@@ -91,27 +91,33 @@ export function PaymentMethodDetail({ paymentMethod }: PaymentMethodDetailProps)
               Transfer ke rekening berikut:
             </p>
             <div className="space-y-2">
-              <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span className="text-sm font-medium">Bank:</span>
-                <span className="text-sm">{paymentMethods.bank.account.bank}</span>
-              </div>
-              <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span className="text-sm font-medium">No. Rekening:</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-mono">{paymentMethods.bank.account.account_number}</span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => copyToClipboard(paymentMethods.bank.account.account_number, 'Nomor rekening')}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
+              {paymentMethods.bank.account.bank && (
+                <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                  <span className="text-sm font-medium">Bank:</span>
+                  <span className="text-sm">{paymentMethods.bank.account.bank}</span>
                 </div>
-              </div>
-              <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                <span className="text-sm font-medium">Atas Nama:</span>
-                <span className="text-sm">{paymentMethods.bank.account.account_name}</span>
-              </div>
+              )}
+              {paymentMethods.bank.account.account_number && (
+                <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                  <span className="text-sm font-medium">No. Rekening:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono">{paymentMethods.bank.account.account_number}</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(paymentMethods.bank.account.account_number, 'Nomor rekening')}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {paymentMethods.bank.account.account_name && (
+                <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                  <span className="text-sm font-medium">Atas Nama:</span>
+                  <span className="text-sm">{paymentMethods.bank.account.account_name}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -125,15 +131,37 @@ export function PaymentMethodDetail({ paymentMethod }: PaymentMethodDetailProps)
             <div className="grid gap-2">
               {Object.entries(paymentMethods.ewallet.options)
                 .filter(([_, enabled]) => enabled)
-                .map(([wallet, _]) => (
-                  <div key={wallet} className="p-2 bg-gray-50 rounded">
-                    <span className="text-sm font-medium">{wallet.toUpperCase()}</span>
-                  </div>
-                ))}
+                .map(([wallet, _]) => {
+                  const contactNumber = paymentMethods.ewallet.contacts?.[wallet] || '';
+                  return (
+                    <div key={wallet} className="p-3 bg-gray-50 rounded space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{wallet.toUpperCase()}</span>
+                        {contactNumber && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyToClipboard(contactNumber, `Nomor ${wallet.toUpperCase()}`)}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {contactNumber && (
+                        <div className="text-sm text-gray-600">
+                          <span className="font-medium">Nomor: </span>
+                          <span className="font-mono">{contactNumber}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
-            <p className="text-xs text-gray-500">
-              Hubungi admin untuk detail pembayaran e-wallet
-            </p>
+            {!Object.entries(paymentMethods.ewallet.options).some(([_, enabled]) => enabled) && (
+              <p className="text-xs text-gray-500">
+                Belum ada e-wallet yang diaktifkan
+              </p>
+            )}
           </div>
         )}
       </CardContent>

@@ -62,7 +62,7 @@ export function useAppSettings() {
           );
         } else {
           return [...prev, {
-            id: '',
+            id: `temp-${Date.now()}`,
             setting_key: key,
             setting_value: value,
             category: category,
@@ -70,6 +70,11 @@ export function useAppSettings() {
           }];
         }
       });
+
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('settings-updated', { 
+        detail: { key, value, category } 
+      }));
 
       toast.success('Pengaturan berhasil disimpan');
       return true;
@@ -93,6 +98,27 @@ export function useAppSettings() {
 
   useEffect(() => {
     fetchSettings();
+
+    // Listen for real-time updates
+    const channel = supabase
+      .channel('app_settings_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'app_settings'
+        },
+        () => {
+          // Refresh settings when changes occur
+          fetchSettings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return {

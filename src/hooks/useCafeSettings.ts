@@ -1,8 +1,22 @@
 
 import { useAppSettings } from './useAppSettings';
+import { useEffect, useState } from 'react';
 
 export function useCafeSettings() {
   const { getSetting, loading } = useAppSettings();
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Force refresh when settings might have changed
+  const refresh = () => setRefreshKey(prev => prev + 1);
+
+  useEffect(() => {
+    // Listen for storage events to refresh when settings change
+    const handleStorageChange = () => {
+      refresh();
+    };
+    window.addEventListener('settings-updated', handleStorageChange);
+    return () => window.removeEventListener('settings-updated', handleStorageChange);
+  }, []);
 
   return {
     cafeName: getSetting('cafe_name', 'Kopi dari Hati'),
@@ -26,13 +40,27 @@ export function useCafeSettings() {
       },
       bank: {
         enabled: getSetting('payment_bank_enabled', true),
-        account: getSetting('payment_bank_account', {})
+        account: getSetting('payment_bank_account', {
+          bank: 'BCA',
+          account_number: '1234567890',
+          account_name: 'Kopi dari Hati'
+        })
       },
       ewallet: {
         enabled: getSetting('payment_ewallet_enabled', false),
-        options: getSetting('payment_ewallet_options', {})
+        options: getSetting('payment_ewallet_options', {
+          gopay: false,
+          ovo: false,
+          dana: false
+        }),
+        contacts: getSetting('payment_ewallet_contacts', {
+          gopay: '',
+          ovo: '',
+          dana: ''
+        })
       }
     },
-    loading
+    loading,
+    refresh
   };
 }
