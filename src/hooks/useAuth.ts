@@ -13,10 +13,14 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
+  // Track if profile has been loaded to prevent redundant calls
+  const [profileLoaded, setProfileLoaded] = useState(false);
+
   // Memoize profile loading to prevent unnecessary calls
   const loadUserProfile = useCallback(async (userId: string) => {
-    if (profileLoading) {
-      console.log('Profile loading already in progress, skipping...');
+    // Prevent redundant calls if profile is already loaded or loading
+    if (profileLoading || profileLoaded) {
+      console.log('Profile loading already in progress or completed, skipping...');
       return;
     }
 
@@ -27,36 +31,45 @@ export function useAuth() {
       const profile = await ProfileService.loadUserProfile(userId);
       console.log('Profile loaded:', profile);
       setUserProfile(profile);
+      setProfileLoaded(true);
     } catch (error) {
       console.error('Error loading user profile:', error);
     } finally {
       setProfileLoading(false);
     }
-  }, [profileLoading]);
+  }, [profileLoading, profileLoaded]);
 
-  // Debounce auth state changes to prevent multiple rapid calls
+  // Handle auth state changes with debouncing
   const handleAuthStateChange = useCallback(async (event: string, session: Session | null) => {
     console.log('Auth state changed:', event, session?.user?.id);
     
     setSession(session);
     setUser(session?.user ?? null);
     
-    if (session?.user && !profileLoading) {
-      // Use setTimeout to avoid blocking the auth state change and prevent rapid successive calls
+    if (session?.user && !profileLoaded) {
+      // Reset profile loaded state for new user
+      if (userProfile?.id !== session.user.id) {
+        setProfileLoaded(false);
+        setUserProfile(null);
+      }
+      
+      // Load profile for authenticated user
       setTimeout(() => {
         loadUserProfile(session.user.id);
       }, 100);
     } else if (!session?.user) {
+      // Clear profile data on sign out
       setUserProfile(null);
+      setProfileLoaded(false);
     }
     
     setLoading(false);
-  }, [loadUserProfile, profileLoading]);
+  }, [loadUserProfile, profileLoaded, userProfile?.id]);
 
   useEffect(() => {
     let mounted = true;
 
-    // Set up auth state listener with debounced handler
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
     // Check for existing session only once
@@ -81,6 +94,8 @@ export function useAuth() {
   }, []); // Empty dependency array to run only once
 
   const signIn = async (email: string, password: string) => {
+    // Reset profile state on new sign in
+    setProfileLoaded(false);
     return await AuthService.signIn(email, password);
   };
 
@@ -92,6 +107,7 @@ export function useAuth() {
     const { error } = await AuthService.signOut();
     if (!error) {
       setUserProfile(null);
+      setProfileLoaded(false);
     }
     return { error };
   };

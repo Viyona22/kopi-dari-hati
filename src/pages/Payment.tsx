@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,25 +15,33 @@ import { toast } from '@/hooks/use-toast';
 export default function Payment() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { purchaseId } = useParams();
   const { savePurchase } = usePurchaseData();
   const [orderData, setOrderData] = useState(null);
-  const [purchaseId, setPurchaseId] = useState(null);
+  const [finalPurchaseId, setFinalPurchaseId] = useState(purchaseId);
   const [paymentDeadline, setPaymentDeadline] = useState(null);
 
   useEffect(() => {
+    console.log('Payment page loaded with params:', { purchaseId });
+    console.log('Location state:', location.state);
+    
     const data = location.state?.orderData;
     if (!data) {
+      console.log('No order data found, redirecting to checkout');
       navigate('/checkout');
       return;
     }
+    
     setOrderData(data);
     
     // Create purchase record when payment page loads
     createPurchaseRecord(data);
-  }, [location.state, navigate]);
+  }, [location.state, navigate, purchaseId]);
 
   const createPurchaseRecord = async (data) => {
     try {
+      console.log('Creating purchase record with data:', data);
+      
       const purchaseData = {
         ...data,
         payment_status: 'pending',
@@ -41,7 +49,9 @@ export default function Payment() {
       };
       
       const result = await savePurchase(purchaseData);
-      setPurchaseId(result.id);
+      console.log('Purchase record created:', result);
+      
+      setFinalPurchaseId(result.id);
       setPaymentDeadline(result.payment_deadline);
     } catch (error) {
       console.error('Error creating purchase:', error);
@@ -149,9 +159,9 @@ export default function Payment() {
           <div className="space-y-6">
             <PaymentMethodDetail paymentMethod={orderData.payment_method} />
             
-            {purchaseId && (
+            {finalPurchaseId && (
               <PaymentProofUpload 
-                purchaseId={purchaseId}
+                purchaseId={finalPurchaseId}
                 onUploadComplete={handlePaymentComplete}
               />
             )}

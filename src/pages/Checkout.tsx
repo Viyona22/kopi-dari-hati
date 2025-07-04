@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Layout } from '../components/layout/Layout';
 import { useCart } from '@/context/CartContext';
@@ -45,6 +46,8 @@ export default function Checkout() {
   });
 
   async function onSubmit(data: CheckoutFormValues) {
+    console.log('Starting checkout process with data:', data);
+    
     // Prepare order data
     const orderData = {
       customer_name: data.name,
@@ -62,11 +65,16 @@ export default function Checkout() {
       status: 'Diproses' as const
     };
 
+    console.log('Order data prepared:', orderData);
+
     // Clear cart before navigating
     clearCart();
 
-    // Navigate to payment page with order data
-    navigate('/payment', { 
+    // Navigate to payment page with order data - use temporary ID for now
+    const tempId = Date.now().toString();
+    console.log('Navigating to payment with temp ID:', tempId);
+    
+    navigate(`/payment/${tempId}`, { 
       state: { orderData } 
     });
   }
