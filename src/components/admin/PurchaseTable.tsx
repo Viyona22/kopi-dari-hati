@@ -400,7 +400,6 @@ export function PurchaseTable() {
   );
 }
 
-// Fixed PaymentProofViewer component with better URL handling
 function PaymentProofViewer({ purchaseId }: { purchaseId: string }) {
   const [proofUrl, setProofUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -431,41 +430,72 @@ function PaymentProofViewer({ purchaseId }: { purchaseId: string }) {
 
         console.log('Found proof URL in database:', proofData.proof_image_url);
 
-        // Handle URL properly - ensure we construct the correct public URL
+        // Try multiple methods to get the correct URL
         let finalUrl = proofData.proof_image_url;
-        
-        // If the URL doesn't start with http, it's likely a storage path
-        if (!proofData.proof_image_url.startsWith('http')) {
-          const { data: publicUrlData } = supabase.storage
-            .from('payment-proofs')
-            .getPublicUrl(proofData.proof_image_url);
-          
-          finalUrl = publicUrlData.publicUrl;
-        } else if (proofData.proof_image_url.includes('/storage/v1/object/')) {
-          // If it's already a storage URL but might be malformed, reconstruct it
-          const pathParts = proofData.proof_image_url.split('/storage/v1/object/public/payment-proofs/');
-          if (pathParts.length > 1) {
-            const filePath = pathParts[1];
-            const { data: publicUrlData } = supabase.storage
-              .from('payment-proofs')
-              .getPublicUrl(filePath);
-            
-            finalUrl = publicUrlData.publicUrl;
-          }
-        }
+        let attempts = [];
 
-        console.log('Final proof URL:', finalUrl);
-        
-        // Test if the URL is valid by making a HEAD request
         try {
-          const response = await fetch(finalUrl, { method: 'HEAD' });
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+          // Method 1: Use the URL as-is if it's already complete
+          if (proofData.proof_image_url.startsWith('http')) {
+            attempts.push(proofData.proof_image_url);
           }
-          setProofUrl(finalUrl);
+
+          // Method 2: Extract filename and create new public URL
+          let filename = proofData.proof_image_url;
+          if (filename.includes('/')) {
+            // Extract just the filename part
+            const parts = filename.split('/');
+            filename = parts[parts.length - 1];
+          }
+
+          // Method 3: Try with user folder structure
+          if (filename.includes('-')) {
+            const userIdPart = filename.split('-')[0];
+            attempts.push(`${userIdPart}/${filename}`);
+          }
+
+          // Method 4: Use the full path if it exists
+          if (proofData.proof_image_url.includes('payment-proofs/')) {
+            const pathAfterBucket = proofData.proof_image_url.split('payment-proofs/')[1];
+            if (pathAfterBucket) {
+              attempts.push(pathAfterBucket);
+            }
+          }
+
+          // Try each attempt to get a working URL
+          for (const attempt of attempts) {
+            try {
+              const { data: urlData } = supabase.storage
+                .from('payment-proofs')
+                .getPublicUrl(attempt);
+              
+              console.log('Trying URL:', urlData.publicUrl);
+              
+              // Test the URL
+              const testResponse = await fetch(urlData.publicUrl, { method: 'HEAD' });
+              if (testResponse.ok) {
+                finalUrl = urlData.publicUrl;
+                console.log('Success with URL:', finalUrl);
+                break;
+              }
+            } catch (urlError) {
+              console.log('Failed attempt:', attempt, urlError);
+              continue;
+            }
+          }
+
+          // Final test of the selected URL
+          const finalResponse = await fetch(finalUrl, { method: 'HEAD' });
+          if (finalResponse.ok) {
+            setProofUrl(finalUrl);
+          } else {
+            console.error('All URL attempts failed');
+            setError('File bukti pembayaran tidak dapat diakses');
+          }
+
         } catch (fetchError) {
-          console.error('URL validation failed:', fetchError);
-          setError('File bukti pembayaran tidak dapat diakses');
+          console.error('Error testing URLs:', fetchError);
+          setError('Gagal memuat bukti pembayaran');
         }
 
       } catch (error) {
@@ -484,7 +514,14 @@ function PaymentProofViewer({ purchaseId }: { purchaseId: string }) {
   }
 
   if (error) {
-    return <div className="text-sm text-red-500">{error}</div>;
+    return (
+      <div className="border rounded-lg p-4 bg-red-50">
+        <div className="text-sm text-red-500 mb-2">{error}</div>
+        <div className="text-xs text-gray-500">
+          Purchase ID: {purchaseId}
+        </div>
+      </div>
+    );
   }
 
   if (!proofUrl) {
