@@ -90,6 +90,29 @@ export function usePurchaseData() {
     }
   }
 
+  // Update payment method
+  const updatePaymentMethod = async (id: string, paymentMethod: string) => {
+    try {
+      const { error } = await supabase
+        .from('purchases')
+        .update({ 
+          payment_method: paymentMethod,
+          payment_proof_id: null // Reset proof if payment method changes
+        })
+        .eq('id', id)
+
+      if (error) throw error
+      
+      await loadPurchases() // Refresh data
+      toast.success('Metode pembayaran berhasil diubah!')
+      return true
+    } catch (error) {
+      console.error('Error updating payment method:', error)
+      toast.error('Gagal mengubah metode pembayaran')
+      throw error
+    }
+  }
+
   // Delete purchase
   const deletePurchase = async (id: string) => {
     try {
@@ -120,6 +143,7 @@ export function usePurchaseData() {
     loading,
     savePurchase,
     updatePurchaseStatus,
+    updatePaymentMethod,
     deletePurchase,
     refreshData: loadPurchases
   }

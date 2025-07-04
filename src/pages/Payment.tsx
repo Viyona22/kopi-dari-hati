@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Clock, ArrowLeft } from 'lucide-react';
 import { PaymentMethodDetail } from '@/components/payment/PaymentMethodDetail';
+import { PaymentMethodChangeModal } from '@/components/payment/PaymentMethodChangeModal';
 import { PaymentProofUpload } from '@/components/payment/PaymentProofUpload';
 import { PaymentTimer } from '@/components/payment/PaymentTimer';
 import { usePurchaseData } from '@/hooks/usePurchaseData';
@@ -16,10 +17,11 @@ export default function Payment() {
   const location = useLocation();
   const navigate = useNavigate();
   const { purchaseId } = useParams();
-  const { savePurchase } = usePurchaseData();
+  const { savePurchase, updatePaymentMethod, purchases } = usePurchaseData();
   const [orderData, setOrderData] = useState(null);
   const [finalPurchaseId, setFinalPurchaseId] = useState(purchaseId);
   const [paymentDeadline, setPaymentDeadline] = useState(null);
+  const [currentPurchase, setCurrentPurchase] = useState(null);
 
   useEffect(() => {
     console.log('Payment page loaded with params:', { purchaseId });
@@ -27,6 +29,24 @@ export default function Payment() {
     
     const data = location.state?.orderData;
     if (!data) {
+      // Try to find existing purchase if no order data
+      if (purchaseId && purchases.length > 0) {
+        const existingPurchase = purchases.find(p => p.id === purchaseId);
+        if (existingPurchase) {
+          setCurrentPurchase(existingPurchase);
+          setOrderData({
+            customer_name: existingPurchase.customer_name,
+            customer_phone: existingPurchase.customer_phone,
+            customer_address: existingPurchase.customer_address,
+            order_items: existingPurchase.order_items,
+            total_amount: existingPurchase.total_amount,
+            payment_method: existingPurchase.payment_method
+          });
+          setPaymentDeadline(existingPurchase.payment_deadline);
+          return;
+        }
+      }
+      
       console.log('No order data found, redirecting to checkout');
       navigate('/checkout');
       return;
@@ -36,7 +56,7 @@ export default function Payment() {
     
     // Create purchase record when payment page loads
     createPurchaseRecord(data);
-  }, [location.state, navigate, purchaseId]);
+  }, [location.state, navigate, purchaseId, purchases]);
 
   const createPurchaseRecord = async (data) => {
     try {
@@ -52,6 +72,7 @@ export default function Payment() {
       console.log('Purchase record created:', result);
       
       setFinalPurchaseId(result.id);
+      setCurrentPurchase(result);
       setPaymentDeadline(result.payment_deadline);
     } catch (error) {
       console.error('Error creating purchase:', error);
@@ -60,6 +81,31 @@ export default function Payment() {
         description: "Gagal membuat pesanan. Silakan coba lagi.",
         variant: "destructive"
       });
+    }
+  };
+
+  const handlePaymentMethodChange = async (newPaymentMethod: string) => {
+    if (!finalPurchaseId) return;
+    
+    try {
+      await updatePaymentMethod(finalPurchaseId, newPaymentMethod);
+      
+      // Update local order data
+      setOrderData(prev => ({
+        ...prev,
+        payment_method: newPaymentMethod
+      }));
+
+      // Update current purchase
+      if (currentPurchase) {
+        setCurrentPurchase(prev => ({
+          ...prev,
+          payment_method: newPaymentMethod,
+          payment_proof_id: null
+        }));
+      }
+    } catch (error) {
+      throw error; // Re-throw to be handled by the modal
     }
   };
 
@@ -77,6 +123,13 @@ export default function Payment() {
       navigate('/');
     }, 3000);
   };
+
+  // Check if payment method can be changed
+  const canChangePaymentMethod = currentPurchase && 
+    currentPurchase.payment_status === 'pending' && 
+    !currentPurchase.payment_proof_id &&
+    currentPurchase.status !== 'Selesai' &&
+    currentPurchase.status !== 'Dibatalkan';
 
   if (!orderData) {
     return (
@@ -157,6 +210,24 @@ export default function Payment() {
 
           {/* Payment Section */}
           <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Metode Pembayaran</h3>
+                {canChangePaymentMethod && (
+                  <PaymentMethodChangeModal
+                    currentPaymentMethod={orderData.payment_method}
+                    onPaymentMethodChange={handlePaymentMethodChange}
+                  />
+                )}
+              </div>
+              
+              {!canChangePaymentMethod && currentPurchase?.payment_proof_id && (
+                <p className="text-sm text-gray-500">
+                  Metode pembayaran tidak dapat diubah karena bukti pembayaran sudah diunggah.
+                </p>
+              )}
+            </div>
+
             <PaymentMethodDetail paymentMethod={orderData.payment_method} />
             
             {finalPurchaseId && (
