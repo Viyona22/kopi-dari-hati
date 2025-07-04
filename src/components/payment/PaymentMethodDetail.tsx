@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { QrCode, Building, Smartphone, Copy } from 'lucide-react';
+import { QrCode, Building, Smartphone, Copy, CreditCard } from 'lucide-react';
 import { useCafeSettings } from '@/hooks/useCafeSettings';
 import { toast } from 'sonner';
 
@@ -38,6 +38,12 @@ export function PaymentMethodDetail({ paymentMethod }: PaymentMethodDetailProps)
           icon: Smartphone,
           description: 'Pembayaran melalui e-wallet'
         };
+      case 'cod':
+        return {
+          title: 'Cash on Delivery',
+          icon: CreditCard,
+          description: 'Bayar saat pesanan diterima'
+        };
       default:
         return {
           title: 'Metode Pembayaran',
@@ -60,6 +66,15 @@ export function PaymentMethodDetail({ paymentMethod }: PaymentMethodDetailProps)
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-gray-600">{methodInfo.description}</p>
+        
+        {/* COD Details */}
+        {paymentMethod === 'cod' && (
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              Pembayaran akan dilakukan saat pesanan diterima. Pastikan Anda menyiapkan uang tunai sesuai dengan total pesanan.
+            </p>
+          </div>
+        )}
         
         {/* QRIS Details */}
         {paymentMethod === 'qris' && paymentMethods.qris.enabled && paymentMethods.qris.value && (
@@ -162,6 +177,17 @@ export function PaymentMethodDetail({ paymentMethod }: PaymentMethodDetailProps)
                 Belum ada e-wallet yang diaktifkan
               </p>
             )}
+          </div>
+        )}
+
+        {/* Show message if payment method is not configured */}
+        {((paymentMethod === 'qris' && (!paymentMethods.qris.enabled || !paymentMethods.qris.value)) ||
+          (paymentMethod === 'bank_transfer' && (!paymentMethods.bank.enabled || !paymentMethods.bank.account)) ||
+          (paymentMethod === 'ewallet' && (!paymentMethods.ewallet.enabled || !Object.entries(paymentMethods.ewallet.options).some(([_, enabled]) => enabled)))) && (
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              Metode pembayaran ini belum dikonfigurasi dengan lengkap. Silakan hubungi admin untuk informasi lebih lanjut.
+            </p>
           </div>
         )}
       </CardContent>

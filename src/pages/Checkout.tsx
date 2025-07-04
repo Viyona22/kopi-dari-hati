@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
+import { useCafeSettings } from '@/hooks/useCafeSettings';
 
 import {
   Form,
@@ -17,21 +18,20 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { PaymentMethodDisplay } from '@/components/payment/PaymentMethodDisplay';
 
 const checkoutFormSchema = z.object({
   name: z.string().min(2, { message: "Nama harus diisi minimal 2 karakter" }),
   phone: z.string().min(10, { message: "Nomor telepon harus diisi minimal 10 digit" }),
   address: z.string().optional(),
-  paymentMethod: z.enum(['cod', 'qris', 'transfer'], { 
-    required_error: "Pilih metode pembayaran" 
-  }),
+  paymentMethod: z.string().min(1, { message: "Pilih metode pembayaran" }),
 });
 
 type CheckoutFormValues = z.infer<typeof checkoutFormSchema>;
 
 export default function Checkout() {
   const { items, getTotalPrice, clearCart } = useCart();
+  const { paymentMethods, loading: settingsLoading } = useCafeSettings();
   const totalPrice = getTotalPrice();
   const navigate = useNavigate();
   
@@ -41,7 +41,7 @@ export default function Checkout() {
       name: '',
       phone: '',
       address: '',
-      paymentMethod: 'cod',
+      paymentMethod: '',
     },
   });
 
@@ -79,6 +79,34 @@ export default function Checkout() {
     });
   }
 
+  // Get available payment methods from admin settings
+  const getAvailablePaymentMethods = () => {
+    const methods = [];
+    
+    if (paymentMethods.qris.enabled) {
+      methods.push('qris');
+    }
+    
+    if (paymentMethods.bank.enabled) {
+      methods.push('bank_transfer');
+    }
+    
+    if (paymentMethods.ewallet.enabled) {
+      const enabledWallets = Object.entries(paymentMethods.ewallet.options)
+        .filter(([_, enabled]) => enabled);
+      if (enabledWallets.length > 0) {
+        methods.push('ewallet');
+      }
+    }
+    
+    // Add COD as fallback
+    methods.push('cod');
+    
+    return methods;
+  };
+
+  const availablePaymentMethods = getAvailablePaymentMethods();
+
   // Redirect if cart is empty
   if (items.length === 0) {
     return (
@@ -92,6 +120,18 @@ export default function Checkout() {
                 Lihat Menu
               </Button>
             </Link>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (settingsLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-gray-600">Memuat halaman checkout...</p>
           </div>
         </div>
       </Layout>
@@ -158,45 +198,28 @@ export default function Checkout() {
                     <FormItem>
                       <FormLabel>Metode Pembayaran</FormLabel>
                       <FormControl>
-                        <RadioGroup 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                          className="flex flex-col space-y-1"
-                        >
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="cod" />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              Cash on Delivery (COD)
-                            </FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="qris" />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              QRIS
-                            </FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="transfer" />
-                            </FormControl>
-                            <FormLabel className="font-normal">
-                              Transfer Bank
-                            </FormLabel>
-                          </FormItem>
-                        </RadioGroup>
+                        <PaymentMethodDisplay
+                          selectedMethod={field.value}
+                          onMethodChange={field.onChange}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 
+                {availablePaymentMethods.length === 0 && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-yellow-800 text-sm">
+                      Belum ada metode pembayaran yang diaktifkan. Silakan hubungi admin.
+                    </p>
+                  </div>
+                )}
+                
                 <Button 
                   type="submit" 
                   className="w-full bg-[#d4462d] hover:bg-[#b33a25]"
+                  disabled={availablePaymentMethods.length === 0}
                 >
                   Lanjut ke Pembayaran
                 </Button>
