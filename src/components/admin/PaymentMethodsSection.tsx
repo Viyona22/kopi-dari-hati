@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +14,9 @@ import { toast } from 'sonner';
 export function PaymentMethodsSection() {
   const { getSetting, updateSetting, updating } = useAppSettings();
   
-  // QRIS Settings
+  // QRIS Settings with default dummy value
   const [qrisEnabled, setQrisEnabled] = useState(getSetting('payment_qris_enabled', true));
-  const [qrisValue, setQrisValue] = useState(getSetting('payment_qris_value', ''));
+  const [qrisValue, setQrisValue] = useState(getSetting('payment_qris_value', 'https://qris.example.com/dummy-qr-code-kopi-dari-hati'));
   
   // Bank Transfer Settings
   const [bankEnabled, setBankEnabled] = useState(getSetting('payment_bank_enabled', true));
@@ -39,7 +39,57 @@ export function PaymentMethodsSection() {
     dana: ''
   }));
 
+  // Update state when settings change
+  useEffect(() => {
+    setQrisEnabled(getSetting('payment_qris_enabled', true));
+    setQrisValue(getSetting('payment_qris_value', 'https://qris.example.com/dummy-qr-code-kopi-dari-hati'));
+    setBankEnabled(getSetting('payment_bank_enabled', true));
+    setBankAccount(getSetting('payment_bank_account', {
+      bank: 'BCA',
+      account_number: '1234567890',
+      account_name: 'Kopi dari Hati'
+    }));
+    setEwalletEnabled(getSetting('payment_ewallet_enabled', false));
+    setEwalletOptions(getSetting('payment_ewallet_options', {
+      gopay: false,
+      ovo: false,
+      dana: false
+    }));
+    setEwalletContacts(getSetting('payment_ewallet_contacts', {
+      gopay: '',
+      ovo: '',
+      dana: ''
+    }));
+  }, [getSetting]);
+
   const handleSave = async () => {
+    // Validation: QRIS value cannot be empty if QRIS is enabled
+    if (qrisEnabled && !qrisValue.trim()) {
+      toast.error('QRIS value tidak boleh kosong jika QRIS diaktifkan');
+      return;
+    }
+
+    // Validation: E-wallet contacts must be filled if e-wallet options are enabled
+    if (ewalletEnabled) {
+      const enabledWallets = Object.entries(ewalletOptions).filter(([_, enabled]) => enabled);
+      const missingContacts = enabledWallets.filter(([wallet, _]) => !ewalletContacts[wallet]?.trim());
+      
+      if (missingContacts.length > 0) {
+        toast.error(`Nomor kontak wajib diisi untuk: ${missingContacts.map(([wallet]) => wallet.toUpperCase()).join(', ')}`);
+        return;
+      }
+    }
+
+    console.log('Saving payment methods:', {
+      qrisEnabled,
+      qrisValue,
+      bankEnabled,
+      bankAccount,
+      ewalletEnabled,
+      ewalletOptions,
+      ewalletContacts
+    });
+
     const success = await Promise.all([
       updateSetting('payment_qris_enabled', qrisEnabled, 'payment'),
       updateSetting('payment_qris_value', qrisValue, 'payment'),
@@ -52,8 +102,11 @@ export function PaymentMethodsSection() {
 
     if (success.every(Boolean)) {
       toast.success('Pengaturan metode pembayaran berhasil disimpan');
-      // Trigger refresh event
+      // Force refresh by dispatching multiple events
       window.dispatchEvent(new CustomEvent('settings-updated'));
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('storage', { detail: 'payment-methods-updated' }));
+      }, 100);
     }
   };
 
@@ -86,14 +139,21 @@ export function PaymentMethodsSection() {
           
           {qrisEnabled && (
             <div className="space-y-2">
-              <Label htmlFor="qris-value">Link atau Kode QRIS</Label>
+              <Label htmlFor="qris-value">Link atau Kode QRIS *</Label>
               <Textarea
                 id="qris-value"
                 value={qrisValue}
                 onChange={(e) => setQrisValue(e.target.value)}
-                placeholder="Masukkan link QRIS atau kode QRIS"
+                placeholder="https://qris.example.com/dummy-qr-code-kopi-dari-hati"
                 rows={2}
+                className={!qrisValue.trim() ? 'border-red-300' : ''}
               />
+              {!qrisValue.trim() && (
+                <p className="text-sm text-red-600">QRIS value wajib diisi</p>
+              )}
+              <p className="text-xs text-gray-500">
+                Contoh: https://qris.example.com/dummy-qr-code-kopi-dari-hati
+              </p>
             </div>
           )}
         </div>
@@ -174,18 +234,28 @@ export function PaymentMethodsSection() {
                     <Switch
                       id={wallet}
                       checked={ewalletOptions[wallet] || false}
-                      onCheckedChange={(checked) => setEwalletOptions({...ewalletOptions, [wallet]: checked})}
+                      onCheckedChange={(checked) => {
+                        console.log(`Setting ${wallet} to ${checked}`);
+                        setEwalletOptions({...ewalletOptions, [wallet]: checked});
+                      }}
                     />
                   </div>
                   {ewalletOptions[wallet] && (
                     <div className="space-y-2">
-                      <Label htmlFor={`${wallet}-contact`}>Nomor {wallet.toUpperCase()}</Label>
+                      <Label htmlFor={`${wallet}-contact`}>Nomor {wallet.toUpperCase()} *</Label>
                       <Input
                         id={`${wallet}-contact`}
                         value={ewalletContacts[wallet] || ''}
-                        onChange={(e) => setEwalletContacts({...ewalletContacts, [wallet]: e.target.value})}
+                        onChange={(e) => {
+                          console.log(`Setting ${wallet} contact to ${e.target.value}`);
+                          setEwalletContacts({...ewalletContacts, [wallet]: e.target.value});
+                        }}
                         placeholder={`Masukkan nomor ${wallet.toUpperCase()}`}
+                        className={ewalletOptions[wallet] && !ewalletContacts[wallet]?.trim() ? 'border-red-300' : ''}
                       />
+                      {ewalletOptions[wallet] && !ewalletContacts[wallet]?.trim() && (
+                        <p className="text-sm text-red-600">Nomor kontak wajib diisi</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -202,6 +272,14 @@ export function PaymentMethodsSection() {
           <Save className="h-4 w-4 mr-2" />
           {updating ? 'Menyimpan...' : 'Simpan Metode Pembayaran'}
         </Button>
+        
+        {/* Debug Info */}
+        <div className="mt-4 p-3 bg-gray-50 rounded text-xs">
+          <p className="font-medium mb-1">Debug Info:</p>
+          <p>E-wallet enabled: {ewalletEnabled ? 'Yes' : 'No'}</p>
+          <p>E-wallet options: {JSON.stringify(ewalletOptions)}</p>
+          <p>E-wallet contacts: {JSON.stringify(ewalletContacts)}</p>
+        </div>
       </CardContent>
     </Card>
   );

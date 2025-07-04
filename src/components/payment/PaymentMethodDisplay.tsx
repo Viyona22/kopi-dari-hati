@@ -12,7 +12,10 @@ interface PaymentMethodDisplayProps {
 }
 
 export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: PaymentMethodDisplayProps) {
-  const { paymentMethods } = useCafeSettings();
+  const { paymentMethods, loading } = useCafeSettings();
+
+  console.log('PaymentMethodDisplay - Payment methods data:', paymentMethods);
+  console.log('PaymentMethodDisplay - Loading state:', loading);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -21,7 +24,7 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
 
   const availableMethods = [];
 
-  // Add COD if available
+  // Add COD as always available
   availableMethods.push({
     id: 'cod',
     title: 'Cash on Delivery (COD)',
@@ -31,6 +34,7 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
 
   // Add QRIS if enabled and has value
   if (paymentMethods.qris.enabled && paymentMethods.qris.value) {
+    console.log('Adding QRIS method:', paymentMethods.qris);
     availableMethods.push({
       id: 'qris',
       title: 'QRIS',
@@ -41,6 +45,7 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
 
   // Add Bank Transfer if enabled and has account details
   if (paymentMethods.bank.enabled && paymentMethods.bank.account) {
+    console.log('Adding Bank Transfer method:', paymentMethods.bank);
     availableMethods.push({
       id: 'bank_transfer',
       title: 'Transfer Bank',
@@ -51,8 +56,11 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
 
   // Add E-wallet if enabled and has enabled options
   if (paymentMethods.ewallet.enabled) {
+    console.log('E-wallet settings:', paymentMethods.ewallet);
     const enabledWallets = Object.entries(paymentMethods.ewallet.options)
       .filter(([_, enabled]) => enabled);
+    
+    console.log('Enabled wallets:', enabledWallets);
     
     if (enabledWallets.length > 0) {
       availableMethods.push({
@@ -62,6 +70,16 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
         description: `${enabledWallets.map(([wallet, _]) => wallet.toUpperCase()).join(', ')}`
       });
     }
+  }
+
+  console.log('Available payment methods:', availableMethods);
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-gray-600">Memuat metode pembayaran...</p>
+      </div>
+    );
   }
 
   return (
@@ -96,6 +114,14 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
           );
         })}
       </div>
+
+      {availableMethods.length === 0 && (
+        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-yellow-800 text-sm">
+            Belum ada metode pembayaran yang diaktifkan. Silakan hubungi admin.
+          </p>
+        </div>
+      )}
 
       {/* Payment Details */}
       {selectedMethod && selectedMethod !== 'cod' && (
@@ -177,6 +203,7 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
                     .filter(([_, enabled]) => enabled)
                     .map(([wallet, _]) => {
                       const contactNumber = paymentMethods.ewallet.contacts?.[wallet] || '';
+                      console.log(`E-wallet ${wallet}:`, { enabled: true, contact: contactNumber });
                       return (
                         <div key={wallet} className="p-3 bg-gray-50 rounded space-y-2">
                           <div className="flex items-center justify-between">
@@ -197,10 +224,20 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
                               <span className="font-mono">{contactNumber}</span>
                             </div>
                           )}
+                          {!contactNumber && (
+                            <div className="text-sm text-yellow-600">
+                              Nomor kontak belum diatur
+                            </div>
+                          )}
                         </div>
                       );
                     })}
                 </div>
+                {!Object.entries(paymentMethods.ewallet.options).some(([_, enabled]) => enabled) && (
+                  <p className="text-xs text-gray-500">
+                    Belum ada e-wallet yang diaktifkan
+                  </p>
+                )}
               </div>
             )}
           </CardContent>

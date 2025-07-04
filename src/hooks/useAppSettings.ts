@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -30,11 +29,38 @@ export function useAppSettings() {
       }
 
       setSettings(data || []);
+      
+      // Initialize default QRIS value if not exists
+      const hasQrisValue = data?.some(setting => setting.setting_key === 'payment_qris_value');
+      if (!hasQrisValue) {
+        console.log('Initializing default QRIS value');
+        await initializeDefaultQrisValue();
+      }
     } catch (error) {
       console.error('Error fetching settings:', error);
       toast.error('Gagal memuat pengaturan');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const initializeDefaultQrisValue = async () => {
+    try {
+      const { error } = await supabase
+        .from('app_settings')
+        .insert({
+          setting_key: 'payment_qris_value',
+          setting_value: 'https://qris.example.com/dummy-qr-code-kopi-dari-hati',
+          category: 'payment'
+        });
+
+      if (error) {
+        console.error('Error initializing QRIS value:', error);
+      } else {
+        console.log('Default QRIS value initialized');
+      }
+    } catch (error) {
+      console.error('Error initializing QRIS value:', error);
     }
   };
 
@@ -114,6 +140,7 @@ export function useAppSettings() {
         detail: { key, value, category } 
       }));
 
+      console.log('Settings updated, dispatching events');
       toast.success('Pengaturan berhasil disimpan');
       return true;
     } catch (error) {
@@ -127,7 +154,9 @@ export function useAppSettings() {
 
   const getSetting = (key: string, defaultValue: any = null) => {
     const setting = settings.find(s => s.setting_key === key);
-    return setting?.setting_value ?? defaultValue;
+    const value = setting?.setting_value ?? defaultValue;
+    console.log(`getSetting(${key}):`, value);
+    return value;
   };
 
   const getSettingsByCategory = (category: string) => {
