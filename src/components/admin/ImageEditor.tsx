@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Canvas as FabricCanvas, FabricImage } from 'fabric';
 import { Button } from '@/components/ui/button';
@@ -209,6 +208,7 @@ export function ImageEditor({
       const dataURL = fabricCanvas.toDataURL({
         format: 'jpeg',
         quality: quality[0],
+        multiplier: 1,
       });
 
       // Convert dataURL to blob
