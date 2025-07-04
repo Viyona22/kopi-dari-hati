@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Clock, ArrowLeft } from 'lucide-react';
-import { PaymentMethodDisplay } from '@/components/payment/PaymentMethodDisplay';
+import { PaymentMethodDetail } from '@/components/payment/PaymentMethodDetail';
 import { PaymentProofUpload } from '@/components/payment/PaymentProofUpload';
 import { PaymentTimer } from '@/components/payment/PaymentTimer';
 import { usePurchaseData } from '@/hooks/usePurchaseData';
@@ -147,7 +147,7 @@ export default function Payment() {
 
           {/* Payment Section */}
           <div className="space-y-6">
-            <PaymentMethodDisplay paymentMethod={orderData.payment_method} />
+            <PaymentMethodDetail paymentMethod={orderData.payment_method} />
             
             {purchaseId && (
               <PaymentProofUpload 
