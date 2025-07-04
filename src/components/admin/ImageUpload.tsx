@@ -2,8 +2,9 @@
 import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Camera, Upload, X, Image as ImageIcon, Save } from 'lucide-react';
+import { Camera, Upload, X, Image as ImageIcon, Save, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ImageEditor } from './ImageEditor';
 
 interface ImageUploadProps {
   currentImage?: string;
@@ -11,13 +12,26 @@ interface ImageUploadProps {
   onImageRemove: () => void;
   onSave?: () => void;
   className?: string;
+  editorConfig?: {
+    aspectRatios?: { label: string; value: number }[];
+    maxWidth?: number;
+    maxHeight?: number;
+  };
 }
 
-export function ImageUpload({ currentImage, onImageChange, onImageRemove, onSave, className }: ImageUploadProps) {
+export function ImageUpload({ 
+  currentImage, 
+  onImageChange, 
+  onImageRemove, 
+  onSave, 
+  className,
+  editorConfig 
+}: ImageUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
 
   const handleFileSelect = async (file: File) => {
     if (!file) return;
@@ -61,6 +75,12 @@ export function ImageUpload({ currentImage, onImageChange, onImageRemove, onSave
     }
   };
 
+  const handleEditSave = (editedBlob: Blob) => {
+    // Convert blob to file
+    const file = new File([editedBlob], 'edited-image.jpg', { type: 'image/jpeg' });
+    handleFileSelect(file);
+  };
+
   return (
     <div className={cn("space-y-3", className)}>
       {/* Hidden file inputs */}
@@ -85,7 +105,7 @@ export function ImageUpload({ currentImage, onImageChange, onImageRemove, onSave
         <div className="relative inline-block">
           <img 
             src={currentImage} 
-            alt="Menu item"
+            alt="Uploaded image"
             className="w-20 h-20 object-cover rounded-md border"
           />
           <Button
@@ -95,6 +115,15 @@ export function ImageUpload({ currentImage, onImageChange, onImageRemove, onSave
             onClick={onImageRemove}
           >
             <X className="h-3 w-3" />
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="absolute -bottom-2 -right-2 h-6 w-6 rounded-full p-0"
+            onClick={() => setShowEditor(true)}
+            title="Edit Gambar"
+          >
+            <Edit className="h-3 w-3" />
           </Button>
         </div>
       )}
@@ -145,6 +174,19 @@ export function ImageUpload({ currentImage, onImageChange, onImageRemove, onSave
         <div className="w-20 h-20 bg-gray-200 rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center">
           <ImageIcon className="h-6 w-6 text-gray-400" />
         </div>
+      )}
+
+      {/* Image Editor */}
+      {currentImage && (
+        <ImageEditor
+          imageUrl={currentImage}
+          isOpen={showEditor}
+          onClose={() => setShowEditor(false)}
+          onSave={handleEditSave}
+          aspectRatios={editorConfig?.aspectRatios}
+          maxWidth={editorConfig?.maxWidth}
+          maxHeight={editorConfig?.maxHeight}
+        />
       )}
     </div>
   );

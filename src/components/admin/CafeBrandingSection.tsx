@@ -11,6 +11,13 @@ import { useAppSettings } from '@/hooks/useAppSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+const logoAspectRatios = [
+  { label: 'Square (1:1)', value: 1 },
+  { label: 'Wide Logo (2:1)', value: 2 },
+  { label: 'Tall Logo (1:2)', value: 0.5 },
+  { label: 'Original', value: 0 },
+];
+
 export function CafeBrandingSection() {
   const { getSetting, updateSetting, updating } = useAppSettings();
   const [cafeName, setCafeName] = useState(getSetting('cafe_name', 'Kopi dari Hati'));
@@ -34,15 +41,20 @@ export function CafeBrandingSection() {
         .getPublicUrl(fileName);
 
       setLogoUrl(publicUrlData.publicUrl);
-      toast.success('Logo berhasil diunggah');
+      
+      // Auto-save logo URL
+      await updateSetting('cafe_logo', publicUrlData.publicUrl, 'branding');
+      toast.success('Logo berhasil diunggah dan disimpan');
     } catch (error) {
       console.error('Error uploading logo:', error);
       toast.error('Gagal mengunggah logo');
     }
   };
 
-  const handleLogoRemove = () => {
+  const handleLogoRemove = async () => {
     setLogoUrl(null);
+    await updateSetting('cafe_logo', null, 'branding');
+    toast.success('Logo berhasil dihapus');
   };
 
   const handleSave = async () => {
@@ -67,14 +79,22 @@ export function CafeBrandingSection() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Logo Upload */}
+        {/* Logo Upload with Editor */}
         <div className="space-y-2">
           <Label>Logo Cafe</Label>
           <ImageUpload
             currentImage={logoUrl}
             onImageChange={handleLogoUpload}
             onImageRemove={handleLogoRemove}
+            editorConfig={{
+              aspectRatios: logoAspectRatios,
+              maxWidth: 400,
+              maxHeight: 400
+            }}
           />
+          <p className="text-sm text-gray-500">
+            Klik tombol edit (✏️) pada gambar untuk mengubah ukuran, memutar, atau memotong logo.
+          </p>
         </div>
 
         {/* Cafe Name */}

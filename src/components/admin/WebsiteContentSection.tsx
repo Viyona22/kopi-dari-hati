@@ -5,10 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/admin/ImageUpload';
-import { Globe, Save, Clock, Image as ImageIcon, X } from 'lucide-react';
+import { Globe, Save, Clock, Image as ImageIcon, X, Edit } from 'lucide-react';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ImageEditor } from './ImageEditor';
+
+const atmosphereAspectRatios = [
+  { label: 'Landscape (4:3)', value: 4/3 },
+  { label: 'Wide (16:9)', value: 16/9 },
+  { label: 'Square (1:1)', value: 1 },
+  { label: 'Original', value: 0 },
+];
 
 export function WebsiteContentSection() {
   const { getSetting, updateSetting, updating } = useAppSettings();
@@ -17,6 +25,7 @@ export function WebsiteContentSection() {
   const [closeTime, setCloseTime] = useState(getSetting('operational_hours_close', '22:00'));
   const [isOpen, setIsOpen] = useState(getSetting('operational_is_open', true));
   const [atmosphereImages, setAtmosphereImages] = useState(getSetting('atmosphere_images', []));
+  const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
 
   const handleImageUpload = async (file: File) => {
     try {
@@ -52,6 +61,33 @@ export function WebsiteContentSection() {
     // Auto-save when image is removed
     await updateSetting('atmosphere_images', newImages, 'content');
     toast.success('Gambar berhasil dihapus');
+  };
+
+  const handleImageEdit = async (index: number, editedBlob: Blob) => {
+    try {
+      const fileName = `atmosphere-edited-${Date.now()}.jpg`;
+      
+      const { data, error } = await supabase.storage
+        .from('cafe-assets')
+        .upload(fileName, editedBlob);
+
+      if (error) throw error;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('cafe-assets')
+        .getPublicUrl(fileName);
+
+      const newImages = [...atmosphereImages];
+      newImages[index] = publicUrlData.publicUrl;
+      setAtmosphereImages(newImages);
+      
+      // Auto-save the updated images
+      await updateSetting('atmosphere_images', newImages, 'content');
+      toast.success('Gambar berhasil diedit dan disimpan');
+    } catch (error) {
+      console.error('Error saving edited image:', error);
+      toast.error('Gagal menyimpan gambar yang sudah diedit');
+    }
   };
 
   const handleSave = async () => {
@@ -119,7 +155,7 @@ export function WebsiteContentSection() {
           </div>
         </div>
 
-        {/* Atmosphere Images */}
+        {/* Atmosphere Images with Editor */}
         <div className="space-y-4 p-4 border rounded-lg">
           <div className="flex items-center gap-2 mb-3">
             <ImageIcon className="h-5 w-5" />
@@ -130,7 +166,7 @@ export function WebsiteContentSection() {
           {atmosphereImages.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
               {atmosphereImages.map((image, index) => (
-                <div key={index} className="relative">
+                <div key={index} className="relative group">
                   <img 
                     src={image} 
                     alt={`Suasana ${index + 1}`}
@@ -139,10 +175,19 @@ export function WebsiteContentSection() {
                   <Button
                     size="sm"
                     variant="destructive"
-                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => handleImageRemove(index)}
                   >
                     <X className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="absolute -bottom-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setEditingImageIndex(index)}
+                    title="Edit Gambar"
+                  >
+                    <Edit className="h-3 w-3" />
                   </Button>
                 </div>
               ))}
@@ -154,10 +199,15 @@ export function WebsiteContentSection() {
             onImageChange={handleImageUpload}
             onImageRemove={() => {}}
             className="border-dashed border-2 border-gray-300 p-4 rounded-lg"
+            editorConfig={{
+              aspectRatios: atmosphereAspectRatios,
+              maxWidth: 600,
+              maxHeight: 400
+            }}
           />
           
           <p className="text-sm text-gray-500">
-            Gambar akan otomatis disimpan setelah diunggah dan langsung muncul di halaman utama website.
+            Gambar akan otomatis disimpan setelah diunggah. Klik tombol edit (✏️) pada gambar untuk mengubah ukuran, memutar, atau memotong gambar.
           </p>
         </div>
 
@@ -170,6 +220,22 @@ export function WebsiteContentSection() {
           {updating ? 'Menyimpan...' : 'Simpan Konten Website'}
         </Button>
       </CardContent>
+
+      {/* Image Editor for Atmosphere Images */}
+      {editingImageIndex !== null && (
+        <ImageEditor
+          imageUrl={atmosphereImages[editingImageIndex]}
+          isOpen={editingImageIndex !== null}
+          onClose={() => setEditingImageIndex(null)}
+          onSave={(blob) => {
+            handleImageEdit(editingImageIndex, blob);
+            setEditingImageIndex(null);
+          }}
+          aspectRatios={atmosphereAspectRatios}
+          maxWidth={600}
+          maxHeight={400}
+        />
+      )}
     </Card>
   );
 }
