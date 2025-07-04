@@ -33,6 +33,15 @@ export function useCafeSettings() {
       close: getSetting('operational_hours_close', '22:00'),
       isOpen: getSetting('operational_is_open', true)
     },
+    operationalDays: getSetting('operational_days', {
+      monday: true,
+      tuesday: true,
+      wednesday: true,
+      thursday: true,
+      friday: true,
+      saturday: true,
+      sunday: false
+    }),
     paymentMethods: {
       qris: {
         enabled: getSetting('payment_qris_enabled', true),

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { Globe, Save, Clock, Image as ImageIcon, X, Edit } from 'lucide-react';
 import { useAppSettings } from '@/hooks/useAppSettings';
@@ -18,14 +19,42 @@ const atmosphereAspectRatios = [
   { label: 'Original', value: 0 },
 ];
 
+const operationalDays = [
+  { id: 'monday', label: 'Senin' },
+  { id: 'tuesday', label: 'Selasa' },
+  { id: 'wednesday', label: 'Rabu' },
+  { id: 'thursday', label: 'Kamis' },
+  { id: 'friday', label: 'Jumat' },
+  { id: 'saturday', label: 'Sabtu' },
+  { id: 'sunday', label: 'Minggu' },
+];
+
 export function WebsiteContentSection() {
   const { getSetting, updateSetting, updating } = useAppSettings();
   
   const [openTime, setOpenTime] = useState(getSetting('operational_hours_open', '08:00'));
   const [closeTime, setCloseTime] = useState(getSetting('operational_hours_close', '22:00'));
   const [isOpen, setIsOpen] = useState(getSetting('operational_is_open', true));
+  const [operationalDaysState, setOperationalDaysState] = useState(
+    getSetting('operational_days', {
+      monday: true,
+      tuesday: true,
+      wednesday: true,
+      thursday: true,
+      friday: true,
+      saturday: true,
+      sunday: false
+    })
+  );
   const [atmosphereImages, setAtmosphereImages] = useState(getSetting('atmosphere_images', []));
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
+
+  const handleDayChange = (dayId: string, checked: boolean) => {
+    setOperationalDaysState(prev => ({
+      ...prev,
+      [dayId]: checked
+    }));
+  };
 
   const handleImageUpload = async (file: File) => {
     try {
@@ -95,6 +124,7 @@ export function WebsiteContentSection() {
       updateSetting('operational_hours_open', openTime, 'operations'),
       updateSetting('operational_hours_close', closeTime, 'operations'),
       updateSetting('operational_is_open', isOpen, 'operations'),
+      updateSetting('operational_days', operationalDaysState, 'operations'),
       updateSetting('atmosphere_images', atmosphereImages, 'content')
     ]);
 
@@ -123,14 +153,29 @@ export function WebsiteContentSection() {
           </div>
           
           <div className="flex items-center space-x-2 mb-4">
-            <input
-              type="checkbox"
+            <Checkbox
               id="is-open"
               checked={isOpen}
-              onChange={(e) => setIsOpen(e.target.checked)}
-              className="rounded"
+              onCheckedChange={(checked) => setIsOpen(checked as boolean)}
             />
             <Label htmlFor="is-open">Cafe sedang buka</Label>
+          </div>
+
+          {/* Operational Days */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Hari Operasional</Label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {operationalDays.map((day) => (
+                <div key={day.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={day.id}
+                    checked={operationalDaysState[day.id as keyof typeof operationalDaysState]}
+                    onCheckedChange={(checked) => handleDayChange(day.id, checked as boolean)}
+                  />
+                  <Label htmlFor={day.id} className="text-sm">{day.label}</Label>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
