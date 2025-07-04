@@ -1,5 +1,6 @@
+
 import React, { useEffect, useRef, useState } from 'react';
-import { Canvas as FabricCanvas, Image as FabricImage, util } from 'fabric';
+import { Canvas as FabricCanvas, Image as FabricImage } from 'fabric';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
@@ -13,7 +14,8 @@ import {
   Crop,
   Download,
   X,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -51,149 +53,202 @@ export function ImageEditor({
   const [quality, setQuality] = useState([0.9]);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState('0');
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
 
+  // Initialize canvas
   useEffect(() => {
     if (!isOpen || !canvasRef.current) return;
 
+    console.log('Initializing canvas...');
     const canvas = new FabricCanvas(canvasRef.current, {
       width: maxWidth,
       height: maxHeight,
-      backgroundColor: '#f0f0f0',
+      backgroundColor: '#f8f9fa',
     });
 
     setFabricCanvas(canvas);
+    console.log('Canvas initialized:', canvas);
 
     return () => {
+      console.log('Disposing canvas...');
       canvas.dispose();
     };
   }, [isOpen, maxWidth, maxHeight]);
 
+  // Load image into canvas
   useEffect(() => {
     if (!fabricCanvas || !imageUrl) return;
 
+    console.log('Loading image:', imageUrl);
     setIsLoading(true);
+    setLoadingError(null);
+
+    // Create image element directly instead of using util.loadImage
+    const imgElement = new Image();
     
-    util.loadImage(imageUrl, { crossOrigin: 'anonymous' }).then((img) => {
-      const fabricImg = new FabricImage(img, {
-        left: 0,
-        top: 0,
-        selectable: true,
-        evented: true,
-      });
-
-      // Scale image to fit canvas
-      const imgWidth = fabricImg.getScaledWidth();
-      const imgHeight = fabricImg.getScaledHeight();
+    imgElement.onload = () => {
+      console.log('Image loaded successfully:', imgElement.width, 'x', imgElement.height);
       
-      const scale = Math.min(
-        maxWidth / imgWidth,
-        maxHeight / imgHeight,
-        1
-      );
-      
-      fabricImg.scaleToWidth(imgWidth * scale);
-      
-      // Center the image manually
-      const canvasCenter = fabricCanvas.getCenterPoint();
-      fabricImg.setXY(canvasCenter, 'center', 'center');
+      try {
+        const fabricImg = new FabricImage(imgElement, {
+          left: 0,
+          top: 0,
+          selectable: true,
+          evented: true,
+        });
 
-      fabricCanvas.clear();
-      fabricCanvas.add(fabricImg);
-      fabricCanvas.setActiveObject(fabricImg);
-      fabricCanvas.renderAll();
+        // Calculate scale to fit canvas while maintaining aspect ratio
+        const imgWidth = imgElement.width;
+        const imgHeight = imgElement.height;
+        
+        const scaleX = (maxWidth * 0.9) / imgWidth; // Use 90% of canvas width
+        const scaleY = (maxHeight * 0.9) / imgHeight; // Use 90% of canvas height
+        const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+        
+        console.log('Calculated scale:', scale);
+        
+        if (scale < 1) {
+          fabricImg.scale(scale);
+        }
 
-      setOriginalImage(fabricImg);
-      setCurrentImage(fabricImg);
-      setIsLoading(false);
-    }).catch((error) => {
+        // Center the image on canvas
+        const canvasWidth = fabricCanvas.getWidth();
+        const canvasHeight = fabricCanvas.getHeight();
+        const scaledWidth = imgWidth * scale;
+        const scaledHeight = imgHeight * scale;
+        
+        fabricImg.set({
+          left: (canvasWidth - scaledWidth) / 2,
+          top: (canvasHeight - scaledHeight) / 2
+        });
+
+        // Clear canvas and add image
+        fabricCanvas.clear();
+        fabricCanvas.add(fabricImg);
+        fabricCanvas.setActiveObject(fabricImg);
+        fabricCanvas.renderAll();
+
+        setOriginalImage(fabricImg);
+        setCurrentImage(fabricImg);
+        setIsLoading(false);
+        
+        console.log('Image added to canvas successfully');
+      } catch (error) {
+        console.error('Error creating fabric image:', error);
+        setLoadingError('Gagal memproses gambar');
+        setIsLoading(false);
+      }
+    };
+
+    imgElement.onerror = (error) => {
       console.error('Error loading image:', error);
-      toast.error('Gagal memuat gambar');
+      setLoadingError('Gagal memuat gambar. Pastikan URL gambar valid.');
       setIsLoading(false);
-    });
+    };
+
+    // Set image source (remove crossOrigin for Supabase storage)
+    imgElement.src = imageUrl;
+    
   }, [fabricCanvas, imageUrl, maxWidth, maxHeight]);
 
   const rotateImage = (degrees: number) => {
-    if (!currentImage) return;
+    if (!currentImage || !fabricCanvas) return;
     
+    console.log(`Rotating image by ${degrees} degrees`);
     const currentAngle = currentImage.angle || 0;
-    currentImage.rotate(currentAngle + degrees);
-    fabricCanvas?.renderAll();
+    currentImage.set('angle', currentAngle + degrees);
+    fabricCanvas.renderAll();
   };
 
   const flipImage = (direction: 'horizontal' | 'vertical') => {
-    if (!currentImage) return;
+    if (!currentImage || !fabricCanvas) return;
 
+    console.log(`Flipping image ${direction}`);
     if (direction === 'horizontal') {
       currentImage.set('flipX', !currentImage.flipX);
     } else {
       currentImage.set('flipY', !currentImage.flipY);
     }
     
-    fabricCanvas?.renderAll();
+    fabricCanvas.renderAll();
   };
 
   const resetImage = async () => {
-    if (!originalImage || !fabricCanvas) return;
+    if (!originalImage || !fabricCanvas || !imageUrl) return;
 
+    console.log('Resetting image to original state');
     setIsLoading(true);
     
     try {
-      // Create a new image from the original
-      const originalElement = originalImage.getElement();
-      const newImg = new FabricImage(originalElement, {
-        left: 0,
-        top: 0,
-        selectable: true,
-        evented: true,
-        angle: 0,
-        flipX: false,
-        flipY: false,
-      });
+      // Recreate image from original URL
+      const imgElement = new Image();
       
-      // Scale to fit canvas
-      const imgWidth = newImg.getScaledWidth();
-      const imgHeight = newImg.getScaledHeight();
-      
-      const scale = Math.min(
-        maxWidth / imgWidth,
-        maxHeight / imgHeight,
-        1
-      );
-      
-      newImg.scaleToWidth(imgWidth * scale);
-      
-      // Center the image
-      const canvasCenter = fabricCanvas.getCenterPoint();
-      newImg.setXY(canvasCenter, 'center', 'center');
+      imgElement.onload = () => {
+        const newImg = new FabricImage(imgElement, {
+          left: 0,
+          top: 0,
+          selectable: true,
+          evented: true,
+          angle: 0,
+          flipX: false,
+          flipY: false,
+        });
+        
+        // Apply same scaling as initial load
+        const imgWidth = imgElement.width;
+        const imgHeight = imgElement.height;
+        const scaleX = (maxWidth * 0.9) / imgWidth;
+        const scaleY = (maxHeight * 0.9) / imgHeight;
+        const scale = Math.min(scaleX, scaleY, 1);
+        
+        if (scale < 1) {
+          newImg.scale(scale);
+        }
 
-      fabricCanvas.clear();
-      fabricCanvas.add(newImg);
-      fabricCanvas.setActiveObject(newImg);
-      fabricCanvas.renderAll();
-      
-      setCurrentImage(newImg);
-      setSelectedAspectRatio('0');
+        // Center the image
+        const canvasWidth = fabricCanvas.getWidth();
+        const canvasHeight = fabricCanvas.getHeight();
+        const scaledWidth = imgWidth * scale;
+        const scaledHeight = imgHeight * scale;
+        
+        newImg.set({
+          left: (canvasWidth - scaledWidth) / 2,
+          top: (canvasHeight - scaledHeight) / 2
+        });
+
+        fabricCanvas.clear();
+        fabricCanvas.add(newImg);
+        fabricCanvas.setActiveObject(newImg);
+        fabricCanvas.renderAll();
+        
+        setCurrentImage(newImg);
+        setSelectedAspectRatio('0');
+        setIsLoading(false);
+      };
+
+      imgElement.src = imageUrl;
     } catch (error) {
       console.error('Error resetting image:', error);
       toast.error('Gagal reset gambar');
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const applyAspectRatio = (ratio: number) => {
     if (!currentImage || !fabricCanvas || ratio === 0) return;
 
-    const imgWidth = currentImage.getScaledWidth();
-    const imgHeight = currentImage.getScaledHeight();
+    console.log('Applying aspect ratio:', ratio);
+    
+    const currentWidth = currentImage.getScaledWidth();
+    const currentHeight = currentImage.getScaledHeight();
     
     let newWidth, newHeight;
     
-    if (imgWidth / imgHeight > ratio) {
-      newHeight = imgHeight;
+    if (currentWidth / currentHeight > ratio) {
+      newHeight = currentHeight;
       newWidth = newHeight * ratio;
     } else {
-      newWidth = imgWidth;
+      newWidth = currentWidth;
       newHeight = newWidth / ratio;
     }
     
@@ -201,11 +256,16 @@ export function ImageEditor({
     const scaleY = newHeight / currentImage.height!;
     const scale = Math.min(scaleX, scaleY);
     
-    currentImage.scaleToWidth(currentImage.width! * scale);
+    currentImage.scale(scale);
     
-    // Center the image
-    const canvasCenter = fabricCanvas.getCenterPoint();
-    currentImage.setXY(canvasCenter, 'center', 'center');
+    // Re-center the image
+    const canvasWidth = fabricCanvas.getWidth();
+    const canvasHeight = fabricCanvas.getHeight();
+    
+    currentImage.set({
+      left: (canvasWidth - newWidth) / 2,
+      top: (canvasHeight - newHeight) / 2
+    });
     
     fabricCanvas.renderAll();
   };
@@ -221,6 +281,7 @@ export function ImageEditor({
   const handleSave = async () => {
     if (!fabricCanvas) return;
 
+    console.log('Saving edited image...');
     setIsLoading(true);
     try {
       const dataURL = fabricCanvas.toDataURL({
@@ -233,6 +294,7 @@ export function ImageEditor({
       const response = await fetch(dataURL);
       const blob = await response.blob();
 
+      console.log('Image saved successfully');
       onSave(blob);
       toast.success('Gambar berhasil diedit');
       onClose();
@@ -243,8 +305,14 @@ export function ImageEditor({
     setIsLoading(false);
   };
 
+  const handleClose = () => {
+    console.log('Closing image editor');
+    setLoadingError(null);
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -257,105 +325,136 @@ export function ImageEditor({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+              <span>Memuat gambar...</span>
+            </div>
+          )}
+
+          {/* Error State */}
+          {loadingError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+              <p>{loadingError}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2"
+                onClick={() => window.location.reload()}
+              >
+                Muat Ulang
+              </Button>
+            </div>
+          )}
+
           {/* Toolbar */}
-          <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => rotateImage(-90)}
-              disabled={isLoading}
-            >
-              <RotateCcw className="h-4 w-4 mr-1" />
-              Putar Kiri
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => rotateImage(90)}
-              disabled={isLoading}
-            >
-              <RotateCw className="h-4 w-4 mr-1" />
-              Putar Kanan
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => flipImage('horizontal')}
-              disabled={isLoading}
-            >
-              <FlipHorizontal className="h-4 w-4 mr-1" />
-              Balik H
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => flipImage('vertical')}
-              disabled={isLoading}
-            >
-              <FlipVertical className="h-4 w-4 mr-1" />
-              Balik V
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={resetImage}
-              disabled={isLoading}
-            >
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Reset
-            </Button>
-          </div>
+          {!isLoading && !loadingError && (
+            <>
+              <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => rotateImage(-90)}
+                  disabled={isLoading}
+                >
+                  <RotateCcw className="h-4 w-4 mr-1" />
+                  Putar Kiri
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => rotateImage(90)}
+                  disabled={isLoading}
+                >
+                  <RotateCw className="h-4 w-4 mr-1" />
+                  Putar Kanan
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => flipImage('horizontal')}
+                  disabled={isLoading}
+                >
+                  <FlipHorizontal className="h-4 w-4 mr-1" />
+                  Balik H
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => flipImage('vertical')}
+                  disabled={isLoading}
+                >
+                  <FlipVertical className="h-4 w-4 mr-1" />
+                  Balik V
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetImage}
+                  disabled={isLoading}
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Reset
+                </Button>
+              </div>
 
-          {/* Settings */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-            <div className="space-y-2">
-              <Label>Rasio Aspek</Label>
-              <Select value={selectedAspectRatio} onValueChange={handleAspectRatioChange}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {aspectRatios.map((ratio) => (
-                    <SelectItem key={ratio.value} value={ratio.value.toString()}>
-                      {ratio.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Kualitas: {Math.round(quality[0] * 100)}%</Label>
-              <Slider
-                value={quality}
-                onValueChange={setQuality}
-                min={0.1}
-                max={1}
-                step={0.1}
-                className="w-full"
-              />
-            </div>
-          </div>
+              {/* Settings */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="space-y-2">
+                  <Label>Rasio Aspek</Label>
+                  <Select value={selectedAspectRatio} onValueChange={handleAspectRatioChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {aspectRatios.map((ratio) => (
+                        <SelectItem key={ratio.value} value={ratio.value.toString()}>
+                          {ratio.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Kualitas: {Math.round(quality[0] * 100)}%</Label>
+                  <Slider
+                    value={quality}
+                    onValueChange={setQuality}
+                    min={0.1}
+                    max={1}
+                    step={0.1}
+                    className="w-full"
+                  />
+                </div>
+              </div>
 
-          {/* Canvas */}
-          <div className="flex justify-center p-4 bg-gray-100 rounded-lg">
-            <canvas
-              ref={canvasRef}
-              className="border border-gray-300 rounded shadow-sm"
-            />
-          </div>
+              {/* Canvas */}
+              <div className="flex justify-center p-4 bg-gray-100 rounded-lg">
+                <canvas
+                  ref={canvasRef}
+                  className="border border-gray-300 rounded shadow-sm max-w-full max-h-[400px]"
+                />
+              </div>
+            </>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose} disabled={isLoading}>
+            <Button variant="outline" onClick={handleClose} disabled={isLoading}>
               <X className="h-4 w-4 mr-1" />
               Batal
             </Button>
-            <Button onClick={handleSave} disabled={isLoading} className="bg-amber-600 hover:bg-amber-700">
+            <Button 
+              onClick={handleSave} 
+              disabled={isLoading || !!loadingError} 
+              className="bg-amber-600 hover:bg-amber-700"
+            >
               <Download className="h-4 w-4 mr-1" />
               {isLoading ? 'Menyimpan...' : 'Simpan Gambar'}
             </Button>
