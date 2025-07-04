@@ -70,16 +70,11 @@ export function ImageEditor({
         selection: true,
       });
 
-      // Ensure canvas is properly initialized
       canvas.renderAll();
       
       setFabricCanvas(canvas);
       setCanvasReady(true);
-      console.log('✅ Canvas initialized successfully:', {
-        width: canvas.getWidth(),
-        height: canvas.getHeight(),
-        backgroundColor: canvas.backgroundColor
-      });
+      console.log('✅ Canvas initialized successfully');
 
       return () => {
         console.log('🗑️ Disposing canvas...');
@@ -92,14 +87,10 @@ export function ImageEditor({
     }
   }, [isOpen, maxWidth, maxHeight]);
 
-  // Load image into canvas using Fabric.js v6 API
+  // Load image into canvas
   useEffect(() => {
     if (!fabricCanvas || !imageUrl || !canvasReady) {
-      console.log('⏳ Waiting for canvas or image URL...', { 
-        fabricCanvas: !!fabricCanvas, 
-        imageUrl: !!imageUrl, 
-        canvasReady 
-      });
+      console.log('⏳ Waiting for canvas or image URL...');
       return;
     }
 
@@ -107,24 +98,46 @@ export function ImageEditor({
     setIsLoading(true);
     setLoadingError(null);
 
-    // Method 1: Try loading with FabricImage.fromURL (Fabric.js v6 recommended method)
-    const loadImageFromURL = async () => {
+    const loadImage = async () => {
       try {
-        console.log('📥 Loading image from URL using FabricImage.fromURL...');
+        console.log('📥 Creating image element...');
         
-        const fabricImg = await FabricImage.fromURL(imageUrl, {
-          crossOrigin: null // Remove CORS for Supabase storage
+        const imgElement = new Image();
+        
+        // Set up promise-based loading
+        const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
+          imgElement.onload = () => {
+            console.log('✅ Image element loaded successfully:', {
+              width: imgElement.width,
+              height: imgElement.height,
+              src: imgElement.src
+            });
+            resolve(imgElement);
+          };
+          
+          imgElement.onerror = (error) => {
+            console.error('❌ Image element failed to load:', error);
+            reject(new Error('Gagal memuat gambar'));
+          };
         });
+
+        // Set crossOrigin before src to avoid CORS issues
+        imgElement.crossOrigin = 'anonymous';
+        imgElement.src = imageUrl;
+
+        // Wait for image to load
+        const loadedImgElement = await imageLoadPromise;
+        
+        console.log('🔄 Converting to FabricImage...');
+        
+        // Create FabricImage from loaded element - fix the API call
+        const fabricImg = await FabricImage.fromElement(loadedImgElement);
 
         if (!fabricImg) {
-          throw new Error('Failed to create FabricImage from URL');
+          throw new Error('Failed to create FabricImage from element');
         }
 
-        console.log('✅ Image loaded successfully:', {
-          width: fabricImg.width,
-          height: fabricImg.height,
-          src: fabricImg.getSrc()
-        });
+        console.log('✅ FabricImage created successfully');
 
         // Calculate scale to fit canvas
         const imgWidth = fabricImg.width || 100;
@@ -132,20 +145,18 @@ export function ImageEditor({
         const canvasWidth = fabricCanvas.getWidth();
         const canvasHeight = fabricCanvas.getHeight();
         
-        // Use 80% of canvas size for better visibility
         const maxImgWidth = canvasWidth * 0.8;
         const maxImgHeight = canvasHeight * 0.8;
         
         const scaleX = maxImgWidth / imgWidth;
         const scaleY = maxImgHeight / imgHeight;
-        const scale = Math.min(scaleX, scaleY, 1); // Don't scale up
+        const scale = Math.min(scaleX, scaleY, 1);
         
         console.log('📏 Calculated scaling:', { scaleX, scaleY, finalScale: scale });
 
-        // Apply scaling
+        // Apply scaling and positioning AFTER creation
         fabricImg.scale(scale);
-
-        // Center the image
+        
         const scaledWidth = imgWidth * scale;
         const scaledHeight = imgHeight * scale;
         
@@ -167,8 +178,6 @@ export function ImageEditor({
         fabricCanvas.clear();
         fabricCanvas.add(fabricImg);
         fabricCanvas.setActiveObject(fabricImg);
-        
-        // Force render
         fabricCanvas.requestRenderAll();
         
         console.log('🎯 Canvas objects after adding image:', fabricCanvas.getObjects().length);
@@ -180,98 +189,22 @@ export function ImageEditor({
         console.log('✅ Image successfully added to canvas');
         
       } catch (error) {
-        console.error('❌ Error with FabricImage.fromURL:', error);
-        // Fallback to manual image element creation
-        loadImageManually();
+        console.error('❌ Error loading image:', error);
+        setLoadingError('Gagal memuat atau memproses gambar');
+        setIsLoading(false);
       }
     };
 
-    // Method 2: Fallback manual loading
-    const loadImageManually = () => {
-      console.log('🔄 Trying manual image loading as fallback...');
-      
-      const imgElement = new Image();
-      
-      imgElement.onload = async () => {
-        try {
-          console.log('✅ Image element loaded:', {
-            width: imgElement.width,
-            height: imgElement.height,
-            src: imgElement.src
-          });
-          
-          // Create FabricImage from loaded element
-          const fabricImg = await FabricImage.fromElement(imgElement, {
-            left: 0,
-            top: 0,
-            selectable: true,
-            evented: true,
-          });
+    // Add timeout for loading
+    const timeout = setTimeout(() => {
+      console.error('⏰ Image loading timeout');
+      setLoadingError('Timeout saat memuat gambar');
+      setIsLoading(false);
+    }, 15000);
 
-          // Apply same scaling and positioning logic
-          const imgWidth = imgElement.width;
-          const imgHeight = imgElement.height;
-          const canvasWidth = fabricCanvas.getWidth();
-          const canvasHeight = fabricCanvas.getHeight();
-          
-          const maxImgWidth = canvasWidth * 0.8;
-          const maxImgHeight = canvasHeight * 0.8;
-          
-          const scaleX = maxImgWidth / imgWidth;
-          const scaleY = maxImgHeight / imgHeight;
-          const scale = Math.min(scaleX, scaleY, 1);
-          
-          fabricImg.scale(scale);
-          
-          const scaledWidth = imgWidth * scale;
-          const scaledHeight = imgHeight * scale;
-          
-          fabricImg.set({
-            left: (canvasWidth - scaledWidth) / 2,
-            top: (canvasHeight - scaledHeight) / 2
-          });
-
-          fabricCanvas.clear();
-          fabricCanvas.add(fabricImg);
-          fabricCanvas.setActiveObject(fabricImg);
-          fabricCanvas.requestRenderAll();
-
-          setOriginalImage(fabricImg);
-          setCurrentImage(fabricImg);
-          setIsLoading(false);
-          
-          console.log('✅ Manual image loading successful');
-          
-        } catch (error) {
-          console.error('❌ Error creating FabricImage from element:', error);
-          setLoadingError('Gagal memproses gambar');
-          setIsLoading(false);
-        }
-      };
-
-      imgElement.onerror = (error) => {
-        console.error('❌ Image element failed to load:', error);
-        setLoadingError('Gagal memuat gambar. Periksa URL gambar.');
-        setIsLoading(false);
-      };
-
-      // Add timeout for image loading
-      const timeout = setTimeout(() => {
-        console.error('⏰ Image loading timeout');
-        setLoadingError('Timeout saat memuat gambar');
-        setIsLoading(false);
-      }, 10000);
-
-      imgElement.onload = (e) => {
-        clearTimeout(timeout);
-        imgElement.onload(e);
-      };
-
-      imgElement.src = imageUrl;
-    };
-
-    // Start with preferred method
-    loadImageFromURL();
+    loadImage().finally(() => {
+      clearTimeout(timeout);
+    });
     
   }, [fabricCanvas, imageUrl, maxWidth, maxHeight, canvasReady]);
 
@@ -305,10 +238,18 @@ export function ImageEditor({
     setLoadingError(null);
     
     try {
-      // Recreate image using the same loading method
-      const fabricImg = await FabricImage.fromURL(imageUrl, {
-        crossOrigin: null
+      const imgElement = new Image();
+      
+      const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
+        imgElement.onload = () => resolve(imgElement);
+        imgElement.onerror = (error) => reject(error);
       });
+
+      imgElement.crossOrigin = 'anonymous';
+      imgElement.src = imageUrl;
+      
+      const loadedImgElement = await imageLoadPromise;
+      const fabricImg = await FabricImage.fromElement(loadedImgElement);
       
       // Apply original scaling and positioning
       const imgWidth = fabricImg.width || 100;
