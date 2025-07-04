@@ -46,22 +46,60 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
     setUploading(true);
 
     try {
+      console.log('Starting upload process...');
+      console.log('User ID:', user.id);
+      console.log('Purchase ID:', purchaseId);
+      console.log('File:', selectedFile.name, 'Size:', selectedFile.size);
+
+      // Validate purchase ownership first
+      const { data: purchaseData, error: purchaseError } = await supabase
+        .from('purchases')
+        .select('id, user_id, payment_status')
+        .eq('id', purchaseId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (purchaseError) {
+        console.error('Purchase validation error:', purchaseError);
+        throw new Error('Purchase tidak ditemukan atau tidak dapat diakses');
+      }
+
+      if (!purchaseData) {
+        throw new Error('Purchase tidak ditemukan');
+      }
+
+      if (purchaseData.payment_status !== 'pending') {
+        throw new Error('Upload bukti pembayaran hanya dapat dilakukan untuk pesanan dengan status pending');
+      }
+
+      console.log('Purchase validation successful:', purchaseData);
+
       // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${user.id}/${purchaseId}-${Date.now()}.${fileExt}`;
+
+      console.log('Uploading to storage with filename:', fileName);
 
       const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
         .upload(fileName, selectedFile);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw new Error(`Gagal mengunggah file: ${uploadError.message}`);
+      }
+
+      console.log('File uploaded successfully');
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('payment-proofs')
         .getPublicUrl(fileName);
 
+      console.log('Public URL generated:', publicUrl);
+
       // Save payment proof record
+      console.log('Inserting payment proof record...');
       const { error: dbError } = await supabase
         .from('payment_proofs')
         .insert({
@@ -70,7 +108,16 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
           status: 'pending'
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database insert error:', dbError);
+        // Try to clean up uploaded file
+        await supabase.storage
+          .from('payment-proofs')
+          .remove([fileName]);
+        throw new Error(`Gagal menyimpan bukti pembayaran: ${dbError.message}`);
+      }
+
+      console.log('Payment proof record inserted successfully');
 
       // Update purchase payment status
       const { error: updateError } = await supabase
@@ -78,7 +125,12 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
         .update({ payment_status: 'uploaded' })
         .eq('id', purchaseId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Purchase update error:', updateError);
+        throw new Error(`Gagal mengupdate status pembayaran: ${updateError.message}`);
+      }
+
+      console.log('Purchase status updated successfully');
 
       setUploaded(true);
       toast({
@@ -89,10 +141,10 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
       onUploadComplete();
 
     } catch (error) {
-      console.error('Error uploading payment proof:', error);
+      console.error('Upload process error:', error);
       toast({
         title: "Gagal Upload",
-        description: "Terjadi kesalahan saat mengunggah bukti pembayaran",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan saat mengunggah bukti pembayaran",
         variant: "destructive"
       });
     }
