@@ -24,7 +24,10 @@ export function useAppSettings() {
         .select('*')
         .order('category', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching settings:', error);
+        throw error;
+      }
 
       setSettings(data || []);
     } catch (error) {
@@ -38,18 +41,53 @@ export function useAppSettings() {
   const updateSetting = async (key: string, value: any, category: string) => {
     setUpdating(true);
     try {
-      const { error } = await supabase
+      console.log('Updating setting:', { key, value, category });
+      
+      // First, try to update existing setting
+      const { data: existingData, error: selectError } = await supabase
         .from('app_settings')
-        .upsert({
-          setting_key: key,
-          setting_value: value,
-          category: category,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'setting_key'
-        });
+        .select('id')
+        .eq('setting_key', key)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (selectError && selectError.code !== 'PGRST116') {
+        console.error('Error checking existing setting:', selectError);
+        throw selectError;
+      }
+
+      let result;
+      if (existingData) {
+        // Update existing record
+        result = await supabase
+          .from('app_settings')
+          .update({
+            setting_value: value,
+            category: category,
+            updated_at: new Date().toISOString()
+          })
+          .eq('setting_key', key)
+          .select()
+          .single();
+      } else {
+        // Insert new record
+        result = await supabase
+          .from('app_settings')
+          .insert({
+            setting_key: key,
+            setting_value: value,
+            category: category,
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+      }
+
+      if (result.error) {
+        console.error('Supabase upsert error:', result.error);
+        throw result.error;
+      }
+
+      console.log('Setting updated successfully:', result.data);
 
       // Update local state
       setSettings(prev => {
@@ -57,12 +95,12 @@ export function useAppSettings() {
         if (existing) {
           return prev.map(s => 
             s.setting_key === key 
-              ? { ...s, setting_value: value, updated_at: new Date().toISOString() }
+              ? { ...s, setting_value: value, category, updated_at: new Date().toISOString() }
               : s
           );
         } else {
           return [...prev, {
-            id: `temp-${Date.now()}`,
+            id: result.data.id,
             setting_key: key,
             setting_value: value,
             category: category,
@@ -80,7 +118,7 @@ export function useAppSettings() {
       return true;
     } catch (error) {
       console.error('Error updating setting:', error);
-      toast.error('Gagal menyimpan pengaturan');
+      toast.error('Gagal menyimpan pengaturan: ' + (error as Error).message);
       return false;
     } finally {
       setUpdating(false);

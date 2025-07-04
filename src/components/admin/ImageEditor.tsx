@@ -1,8 +1,7 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Canvas as FabricCanvas, Image as FabricImage, util } from 'fabric';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -252,6 +251,9 @@ export function ImageEditor({
             <Crop className="h-5 w-5" />
             Edit Gambar
           </DialogTitle>
+          <DialogDescription>
+            Gunakan tools di bawah untuk mengedit gambar Anda. Anda dapat memutar, membalik, mengubah rasio aspek, dan mengatur kualitas gambar.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

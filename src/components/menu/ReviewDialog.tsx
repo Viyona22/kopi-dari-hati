@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -96,6 +96,10 @@ export function ReviewDialog({ menuItemId, menuItemName, children, onReviewSubmi
           <DialogTitle className="text-[#d4462d]">
             Beri Rating untuk {menuItemName}
           </DialogTitle>
+          <DialogDescription>
+            Bagikan pengalaman Anda dengan memberikan rating dan komentar untuk {menuItemName}. 
+            Feedback Anda membantu customer lain dan membantu kami meningkatkan kualitas.
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
