@@ -1,111 +1,183 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import QRCodeSVG from 'react-qr-code';
-import { CreditCard, Smartphone, Building } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { QrCode, Building, Smartphone, Copy } from 'lucide-react';
+import { useCafeSettings } from '@/hooks/useCafeSettings';
+import { toast } from 'sonner';
 
 interface PaymentMethodDisplayProps {
-  paymentMethod: string;
+  selectedMethod: string;
+  onMethodChange: (method: string) => void;
 }
 
-export function PaymentMethodDisplay({ paymentMethod }: PaymentMethodDisplayProps) {
-  const getPaymentDetails = () => {
-    switch (paymentMethod) {
-      case 'qris':
-        return {
-          title: 'Pembayaran QRIS',
-          icon: <Smartphone className="w-5 h-5" />,
-          content: (
-            <div className="text-center space-y-4">
-              <div className="bg-white p-4 rounded-lg inline-block">
-                <QRCodeSVG 
-                  value="00020101021226280010A000000152043211000694050100519500539760054045000620705N/A6304A7B3"
-                  size={200}
-                  level="M"
-                />
-              </div>
-              <div className="text-sm text-gray-600">
-                <p className="font-medium mb-2">Langkah Pembayaran:</p>
-                <ol className="text-left space-y-1">
-                  <li>1. Buka aplikasi e-wallet atau mobile banking</li>
-                  <li>2. Pilih menu QRIS/Scan QR</li>
-                  <li>3. Scan QR Code di atas</li>
-                  <li>4. Masukkan nominal sesuai total tagihan</li>
-                  <li>5. Konfirmasi pembayaran</li>
-                  <li>6. Screenshot bukti pembayaran</li>
-                </ol>
-              </div>
-            </div>
-          )
-        };
-      case 'transfer':
-        return {
-          title: 'Transfer Bank',
-          icon: <Building className="w-5 h-5" />,
-          content: (
-            <div className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium mb-2">Detail Rekening:</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Bank:</span>
-                    <span className="font-medium">BCA</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>No. Rekening:</span>
-                    <span className="font-medium">1234567890</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Atas Nama:</span>
-                    <span className="font-medium">Kopi dari Hati Bangka</span>
+export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: PaymentMethodDisplayProps) {
+  const { paymentMethods } = useCafeSettings();
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} berhasil disalin`);
+  };
+
+  const availableMethods = [];
+
+  // Add QRIS if enabled
+  if (paymentMethods.qris.enabled) {
+    availableMethods.push({
+      id: 'qris',
+      title: 'QRIS',
+      icon: QrCode,
+      description: 'Scan QR Code untuk pembayaran'
+    });
+  }
+
+  // Add Bank Transfer if enabled
+  if (paymentMethods.bank.enabled) {
+    availableMethods.push({
+      id: 'bank_transfer',
+      title: 'Transfer Bank',
+      icon: Building,
+      description: 'Transfer ke rekening bank'
+    });
+  }
+
+  // Add E-wallet if enabled
+  if (paymentMethods.ewallet.enabled) {
+    const enabledWallets = Object.entries(paymentMethods.ewallet.options)
+      .filter(([_, enabled]) => enabled)
+      .map(([wallet, _]) => wallet.toUpperCase());
+    
+    if (enabledWallets.length > 0) {
+      availableMethods.push({
+        id: 'ewallet',
+        title: 'E-Wallet',
+        icon: Smartphone,
+        description: `${enabledWallets.join(', ')}`
+      });
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">Pilih Metode Pembayaran</h3>
+      
+      {/* Payment Method Selection */}
+      <div className="grid gap-3">
+        {availableMethods.map((method) => {
+          const Icon = method.icon;
+          return (
+            <Card 
+              key={method.id}
+              className={`cursor-pointer transition-colors ${
+                selectedMethod === method.id 
+                  ? 'border-amber-500 bg-amber-50' 
+                  : 'hover:border-gray-300'
+              }`}
+              onClick={() => onMethodChange(method.id)}
+            >
+              <CardContent className="flex items-center space-x-3 p-4">
+                <Icon className="h-5 w-5 text-amber-600" />
+                <div className="flex-1">
+                  <h4 className="font-medium">{method.title}</h4>
+                  <p className="text-sm text-gray-600">{method.description}</p>
+                </div>
+                <div className={`w-4 h-4 rounded-full border-2 ${
+                  selectedMethod === method.id 
+                    ? 'border-amber-500 bg-amber-500' 
+                    : 'border-gray-300'
+                }`} />
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Payment Details */}
+      {selectedMethod && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Detail Pembayaran</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            
+            {/* QRIS Details */}
+            {selectedMethod === 'qris' && paymentMethods.qris.value && (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  Scan QR Code di bawah atau gunakan link QRIS:
+                </p>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-mono break-all">
+                      {paymentMethods.qris.value}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(paymentMethods.qris.value, 'Link QRIS')}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
-              <div className="text-sm text-gray-600">
-                <p className="font-medium mb-2">Langkah Pembayaran:</p>
-                <ol className="space-y-1">
-                  <li>1. Transfer ke rekening di atas</li>
-                  <li>2. Masukkan nominal sesuai total tagihan</li>
-                  <li>3. Simpan bukti transfer</li>
-                  <li>4. Upload bukti transfer di bawah ini</li>
-                </ol>
+            )}
+
+            {/* Bank Transfer Details */}
+            {selectedMethod === 'bank_transfer' && paymentMethods.bank.account && (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  Transfer ke rekening berikut:
+                </p>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span className="text-sm font-medium">Bank:</span>
+                    <span className="text-sm">{paymentMethods.bank.account.bank}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span className="text-sm font-medium">No. Rekening:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono">{paymentMethods.bank.account.account_number}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copyToClipboard(paymentMethods.bank.account.account_number, 'Nomor rekening')}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span className="text-sm font-medium">Atas Nama:</span>
+                    <span className="text-sm">{paymentMethods.bank.account.account_name}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          )
-        };
-      default:
-        return {
-          title: 'Cash on Delivery',
-          icon: <CreditCard className="w-5 h-5" />,
-          content: (
-            <div className="text-center space-y-4">
-              <p className="text-gray-600">
-                Anda akan membayar tunai saat pesanan diantar.
-              </p>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-sm text-yellow-800">
-                  <strong>Catatan:</strong> Siapkan uang pas sesuai total tagihan untuk memudahkan proses pembayaran.
+            )}
+
+            {/* E-wallet Details */}
+            {selectedMethod === 'ewallet' && (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  Metode e-wallet yang tersedia:
+                </p>
+                <div className="grid gap-2">
+                  {Object.entries(paymentMethods.ewallet.options)
+                    .filter(([_, enabled]) => enabled)
+                    .map(([wallet, _]) => (
+                      <div key={wallet} className="p-2 bg-gray-50 rounded">
+                        <span className="text-sm font-medium">{wallet.toUpperCase()}</span>
+                      </div>
+                    ))}
+                </div>
+                <p className="text-xs text-gray-500">
+                  Hubungi admin untuk detail pembayaran e-wallet
                 </p>
               </div>
-            </div>
-          )
-        };
-    }
-  };
-
-  const paymentDetails = getPaymentDetails();
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-xl text-[#d4462d] flex items-center gap-2">
-          {paymentDetails.icon}
-          {paymentDetails.title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {paymentDetails.content}
-      </CardContent>
-    </Card>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }

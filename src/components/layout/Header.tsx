@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '@/context/CartContext';
 import { useAuthContext } from '@/components/auth/AuthProvider';
+import { useCafeSettings } from '@/hooks/useCafeSettings';
 import { ShoppingCart, LogOut, User, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 export function Header() {
   const { getTotalItems } = useCart();
   const { user, userProfile, signOut } = useAuthContext();
+  const { cafeName, cafeLogo } = useCafeSettings();
   const navigate = useNavigate();
   const cartItemCount = getTotalItems();
   const isMobile = useIsMobile();
@@ -27,17 +28,20 @@ export function Header() {
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
+  // Use dynamic logo or fallback to default
+  const logoSrc = cafeLogo || "https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/8b514823c305a6f7e15578d979e8300b3985302e?placeholderIfAbsent=true";
+
   if (isMobile) {
     return (
       <header className="bg-[#f9f5f0] py-3 relative">
         <div className="container mx-auto px-4 flex justify-between items-center">
           <Link to="/" className="flex items-center" onClick={closeMobileMenu}>
             <img 
-              src="https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/8b514823c305a6f7e15578d979e8300b3985302e?placeholderIfAbsent=true"
+              src={logoSrc}
               alt="Logo" 
               className="w-8 h-8 mr-2 rounded-full" 
             />
-            <span className="text-[#d4462d] font-bold text-sm">Kopi dari Hati</span>
+            <span className="text-[#d4462d] font-bold text-sm">{cafeName}</span>
           </Link>
           
           <div className="flex items-center space-x-3">
@@ -156,17 +160,17 @@ export function Header() {
     );
   }
 
-  // Desktop version (existing code)
+  // Desktop version
   return (
     <header className="bg-[#f9f5f0] py-4">
       <div className="container mx-auto px-4 flex justify-between items-center">
         <Link to="/" className="flex items-center">
           <img 
-            src="https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/8b514823c305a6f7e15578d979e8300b3985302e?placeholderIfAbsent=true"
+            src={logoSrc}
             alt="Logo" 
             className="w-10 h-10 mr-2 rounded-full" 
           />
-          <span className="text-[#d4462d] font-bold">Kopi dari Hati</span>
+          <span className="text-[#d4462d] font-bold">{cafeName}</span>
         </Link>
         
         <nav>
