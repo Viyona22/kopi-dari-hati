@@ -83,14 +83,20 @@ export function ImageEditor({
       });
 
       // Scale image to fit canvas
+      const imgWidth = fabricImg.getScaledWidth();
+      const imgHeight = fabricImg.getScaledHeight();
+      
       const scale = Math.min(
-        maxWidth / fabricImg.width!,
-        maxHeight / fabricImg.height!,
+        maxWidth / imgWidth,
+        maxHeight / imgHeight,
         1
       );
       
-      fabricImg.scale(scale);
-      fabricImg.center();
+      fabricImg.scaleToWidth(imgWidth * scale);
+      
+      // Center the image manually
+      const canvasCenter = fabricCanvas.getCenterPoint();
+      fabricImg.setXY(canvasCenter, 'center', 'center');
 
       fabricCanvas.clear();
       fabricCanvas.add(fabricImg);
@@ -110,7 +116,8 @@ export function ImageEditor({
   const rotateImage = (degrees: number) => {
     if (!currentImage) return;
     
-    currentImage.rotate(currentImage.angle! + degrees);
+    const currentAngle = currentImage.angle || 0;
+    currentImage.rotate(currentAngle + degrees);
     fabricCanvas?.renderAll();
   };
 
@@ -126,32 +133,53 @@ export function ImageEditor({
     fabricCanvas?.renderAll();
   };
 
-  const resetImage = () => {
+  const resetImage = async () => {
     if (!originalImage || !fabricCanvas) return;
 
-    const newImg = originalImage.clone();
-    newImg.set({
-      angle: 0,
-      flipX: false,
-      flipY: false,
-    });
+    setIsLoading(true);
     
-    const scale = Math.min(
-      maxWidth / newImg.width!,
-      maxHeight / newImg.height!,
-      1
-    );
-    
-    newImg.scale(scale);
-    newImg.center();
+    try {
+      // Create a new image from the original
+      const originalElement = originalImage.getElement();
+      const newImg = new FabricImage(originalElement, {
+        left: 0,
+        top: 0,
+        selectable: true,
+        evented: true,
+        angle: 0,
+        flipX: false,
+        flipY: false,
+      });
+      
+      // Scale to fit canvas
+      const imgWidth = newImg.getScaledWidth();
+      const imgHeight = newImg.getScaledHeight();
+      
+      const scale = Math.min(
+        maxWidth / imgWidth,
+        maxHeight / imgHeight,
+        1
+      );
+      
+      newImg.scaleToWidth(imgWidth * scale);
+      
+      // Center the image
+      const canvasCenter = fabricCanvas.getCenterPoint();
+      newImg.setXY(canvasCenter, 'center', 'center');
 
-    fabricCanvas.clear();
-    fabricCanvas.add(newImg);
-    fabricCanvas.setActiveObject(newImg);
-    fabricCanvas.renderAll();
+      fabricCanvas.clear();
+      fabricCanvas.add(newImg);
+      fabricCanvas.setActiveObject(newImg);
+      fabricCanvas.renderAll();
+      
+      setCurrentImage(newImg);
+      setSelectedAspectRatio('0');
+    } catch (error) {
+      console.error('Error resetting image:', error);
+      toast.error('Gagal reset gambar');
+    }
     
-    setCurrentImage(newImg);
-    setSelectedAspectRatio('0');
+    setIsLoading(false);
   };
 
   const applyAspectRatio = (ratio: number) => {
@@ -174,8 +202,12 @@ export function ImageEditor({
     const scaleY = newHeight / currentImage.height!;
     const scale = Math.min(scaleX, scaleY);
     
-    currentImage.scale(scale);
-    currentImage.center();
+    currentImage.scaleToWidth(currentImage.width! * scale);
+    
+    // Center the image
+    const canvasCenter = fabricCanvas.getCenterPoint();
+    currentImage.setXY(canvasCenter, 'center', 'center');
+    
     fabricCanvas.renderAll();
   };
 
