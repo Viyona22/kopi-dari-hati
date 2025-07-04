@@ -48,46 +48,60 @@ export function ImageEditor({
 }: ImageEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
-  const [originalImage, setOriginalImage] = useState<FabricImage | null>(null);
   const [currentImage, setCurrentImage] = useState<FabricImage | null>(null);
   const [quality, setQuality] = useState([0.9]);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState('0');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [canvasReady, setCanvasReady] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   // Initialize canvas
   useEffect(() => {
     if (!isOpen || !canvasRef.current) return;
 
     console.log('🎨 Initializing canvas...');
+    setDebugInfo('Initializing canvas...');
     
     try {
       const canvas = new FabricCanvas(canvasRef.current, {
         width: maxWidth,
         height: maxHeight,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#f8f9fa',
         selection: true,
       });
+
+      // Add grid pattern for better visibility
+      const gridSize = 20;
+      const grid = [];
+      for (let i = 0; i < maxWidth / gridSize; i++) {
+        grid.push(`M${i * gridSize},0 L${i * gridSize},${maxHeight}`);
+      }
+      for (let i = 0; i < maxHeight / gridSize; i++) {
+        grid.push(`M0,${i * gridSize} L${maxWidth},${i * gridSize}`);
+      }
 
       canvas.renderAll();
       
       setFabricCanvas(canvas);
       setCanvasReady(true);
+      setDebugInfo('Canvas ready');
       console.log('✅ Canvas initialized successfully');
 
       return () => {
         console.log('🗑️ Disposing canvas...');
         setCanvasReady(false);
+        setDebugInfo('Canvas disposed');
         canvas.dispose();
       };
     } catch (error) {
       console.error('❌ Error initializing canvas:', error);
-      setLoadingError('Gagal menginisialisasi canvas');
+      setLoadingError('Failed to initialize canvas');
+      setDebugInfo(`Canvas error: ${error}`);
     }
   }, [isOpen, maxWidth, maxHeight]);
 
-  // Load image into canvas
+  // Load image with multiple strategies
   useEffect(() => {
     if (!fabricCanvas || !imageUrl || !canvasReady) {
       console.log('⏳ Waiting for canvas or image URL...');
@@ -97,48 +111,23 @@ export function ImageEditor({
     console.log('🖼️ Starting image load process:', imageUrl);
     setIsLoading(true);
     setLoadingError(null);
+    setDebugInfo(`Loading image: ${imageUrl}`);
 
-    const loadImage = async () => {
+    const loadImageWithStrategies = async () => {
       try {
-        console.log('📥 Creating image element...');
+        // Strategy 1: Direct URL loading with FabricImage.fromURL
+        console.log('📥 Attempting Strategy 1: FabricImage.fromURL');
+        setDebugInfo('Strategy 1: Direct URL loading...');
         
-        const imgElement = new Image();
+        const fabricImg = await FabricImage.fromURL(imageUrl);
         
-        // Set up promise-based loading
-        const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
-          imgElement.onload = () => {
-            console.log('✅ Image element loaded successfully:', {
-              width: imgElement.width,
-              height: imgElement.height,
-              src: imgElement.src
-            });
-            resolve(imgElement);
-          };
-          
-          imgElement.onerror = (error) => {
-            console.error('❌ Image element failed to load:', error);
-            reject(new Error('Gagal memuat gambar'));
-          };
-        });
-
-        // Set crossOrigin before src to avoid CORS issues
-        imgElement.crossOrigin = 'anonymous';
-        imgElement.src = imageUrl;
-
-        // Wait for image to load
-        const loadedImgElement = await imageLoadPromise;
-        
-        console.log('🔄 Converting to FabricImage...');
-        
-        // Create FabricImage from loaded element - fix the API call
-        const fabricImg = await FabricImage.fromElement(loadedImgElement);
-
         if (!fabricImg) {
-          throw new Error('Failed to create FabricImage from element');
+          throw new Error('FabricImage.fromURL returned null');
         }
 
-        console.log('✅ FabricImage created successfully');
-
+        console.log('✅ Image loaded successfully with Strategy 1');
+        setDebugInfo('Image loaded successfully');
+        
         // Calculate scale to fit canvas
         const imgWidth = fabricImg.width || 100;
         const imgHeight = fabricImg.height || 100;
@@ -153,8 +142,9 @@ export function ImageEditor({
         const scale = Math.min(scaleX, scaleY, 1);
         
         console.log('📏 Calculated scaling:', { scaleX, scaleY, finalScale: scale });
+        setDebugInfo(`Scaling image: ${scale.toFixed(2)}x`);
 
-        // Apply scaling and positioning AFTER creation
+        // Apply scaling and positioning
         fabricImg.scale(scale);
         
         const scaledWidth = imgWidth * scale;
@@ -182,27 +172,108 @@ export function ImageEditor({
         
         console.log('🎯 Canvas objects after adding image:', fabricCanvas.getObjects().length);
 
-        setOriginalImage(fabricImg);
         setCurrentImage(fabricImg);
         setIsLoading(false);
+        setDebugInfo('Image ready for editing');
         
         console.log('✅ Image successfully added to canvas');
-        
+
       } catch (error) {
-        console.error('❌ Error loading image:', error);
-        setLoadingError('Gagal memuat atau memproses gambar');
-        setIsLoading(false);
+        console.error('❌ Strategy 1 failed, trying Strategy 2:', error);
+        setDebugInfo('Strategy 1 failed, trying alternative...');
+        
+        try {
+          // Strategy 2: Using HTML Image element
+          console.log('📥 Attempting Strategy 2: HTML Image element');
+          
+          const imgElement = new Image();
+          
+          const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
+            imgElement.onload = () => {
+              console.log('✅ Image element loaded successfully');
+              resolve(imgElement);
+            };
+            
+            imgElement.onerror = (error) => {
+              console.error('❌ Image element failed to load:', error);
+              reject(new Error('Failed to load image element'));
+            };
+          });
+
+          // Remove CORS restrictions for internal images
+          if (imageUrl.includes(window.location.origin) || imageUrl.includes('supabase')) {
+            console.log('🔓 Using same-origin image, no CORS needed');
+          } else {
+            imgElement.crossOrigin = 'anonymous';
+          }
+          
+          imgElement.src = imageUrl;
+          
+          const loadedImgElement = await imageLoadPromise;
+          console.log('🔄 Converting to FabricImage...');
+          
+          const fabricImg = await FabricImage.fromElement(loadedImgElement);
+          
+          if (!fabricImg) {
+            throw new Error('Failed to create FabricImage from element');
+          }
+
+          console.log('✅ FabricImage created successfully with Strategy 2');
+          
+          // Apply same scaling and positioning logic
+          const imgWidth = fabricImg.width || 100;
+          const imgHeight = fabricImg.height || 100;
+          const canvasWidth = fabricCanvas.getWidth();
+          const canvasHeight = fabricCanvas.getHeight();
+          
+          const maxImgWidth = canvasWidth * 0.8;
+          const maxImgHeight = canvasHeight * 0.8;
+          
+          const scaleX = maxImgWidth / imgWidth;
+          const scaleY = maxImgHeight / imgHeight;
+          const scale = Math.min(scaleX, scaleY, 1);
+          
+          fabricImg.scale(scale);
+          
+          const scaledWidth = imgWidth * scale;
+          const scaledHeight = imgHeight * scale;
+          
+          fabricImg.set({
+            left: (canvasWidth - scaledWidth) / 2,
+            top: (canvasHeight - scaledHeight) / 2,
+            selectable: true,
+            evented: true,
+          });
+
+          fabricCanvas.clear();
+          fabricCanvas.add(fabricImg);
+          fabricCanvas.setActiveObject(fabricImg);
+          fabricCanvas.requestRenderAll();
+          
+          setCurrentImage(fabricImg);
+          setIsLoading(false);
+          setDebugInfo('Image loaded with fallback method');
+          
+          console.log('✅ Image successfully loaded with Strategy 2');
+          
+        } catch (fallbackError) {
+          console.error('❌ All strategies failed:', fallbackError);
+          setLoadingError('Failed to load image. Please try a different image.');
+          setDebugInfo(`All loading strategies failed: ${fallbackError}`);
+          setIsLoading(false);
+        }
       }
     };
 
     // Add timeout for loading
     const timeout = setTimeout(() => {
       console.error('⏰ Image loading timeout');
-      setLoadingError('Timeout saat memuat gambar');
+      setLoadingError('Image loading timeout');
+      setDebugInfo('Loading timeout');
       setIsLoading(false);
-    }, 15000);
+    }, 10000);
 
-    loadImage().finally(() => {
+    loadImageWithStrategies().finally(() => {
       clearTimeout(timeout);
     });
     
@@ -215,6 +286,7 @@ export function ImageEditor({
     const currentAngle = currentImage.angle || 0;
     currentImage.set('angle', currentAngle + degrees);
     fabricCanvas.requestRenderAll();
+    setDebugInfo(`Rotated ${degrees}°`);
   };
 
   const flipImage = (direction: 'horizontal' | 'vertical') => {
@@ -228,6 +300,7 @@ export function ImageEditor({
     }
     
     fabricCanvas.requestRenderAll();
+    setDebugInfo(`Flipped ${direction}`);
   };
 
   const resetImage = async () => {
@@ -236,20 +309,14 @@ export function ImageEditor({
     console.log('🔄 Resetting image to original state');
     setIsLoading(true);
     setLoadingError(null);
+    setDebugInfo('Resetting image...');
     
     try {
-      const imgElement = new Image();
+      const fabricImg = await FabricImage.fromURL(imageUrl);
       
-      const imageLoadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
-        imgElement.onload = () => resolve(imgElement);
-        imgElement.onerror = (error) => reject(error);
-      });
-
-      imgElement.crossOrigin = 'anonymous';
-      imgElement.src = imageUrl;
-      
-      const loadedImgElement = await imageLoadPromise;
-      const fabricImg = await FabricImage.fromElement(loadedImgElement);
+      if (!fabricImg) {
+        throw new Error('Failed to reset image');
+      }
       
       // Apply original scaling and positioning
       const imgWidth = fabricImg.width || 100;
@@ -287,11 +354,13 @@ export function ImageEditor({
       setCurrentImage(fabricImg);
       setSelectedAspectRatio('0');
       setIsLoading(false);
+      setDebugInfo('Image reset complete');
       
       console.log('✅ Image reset successful');
     } catch (error) {
       console.error('❌ Error resetting image:', error);
-      toast.error('Gagal reset gambar');
+      toast.error('Failed to reset image');
+      setDebugInfo(`Reset failed: ${error}`);
       setIsLoading(false);
     }
   };
@@ -300,6 +369,7 @@ export function ImageEditor({
     if (!currentImage || !fabricCanvas || ratio === 0) return;
 
     console.log('📐 Applying aspect ratio:', ratio);
+    setDebugInfo(`Applying aspect ratio: ${ratio}`);
     
     const currentWidth = currentImage.getScaledWidth();
     const currentHeight = currentImage.getScaledHeight();
@@ -330,6 +400,7 @@ export function ImageEditor({
     });
     
     fabricCanvas.requestRenderAll();
+    setDebugInfo(`Aspect ratio applied: ${ratio}`);
   };
 
   const handleAspectRatioChange = (value: string) => {
@@ -345,6 +416,8 @@ export function ImageEditor({
 
     console.log('💾 Saving edited image...');
     setIsLoading(true);
+    setDebugInfo('Saving image...');
+    
     try {
       const dataURL = fabricCanvas.toDataURL({
         format: 'jpeg',
@@ -357,12 +430,14 @@ export function ImageEditor({
       const blob = await response.blob();
 
       console.log('✅ Image saved successfully, blob size:', blob.size);
+      setDebugInfo(`Saved: ${(blob.size / 1024).toFixed(1)}KB`);
       onSave(blob);
-      toast.success('Gambar berhasil diedit');
+      toast.success('Image successfully edited');
       onClose();
     } catch (error) {
       console.error('❌ Error saving image:', error);
-      toast.error('Gagal menyimpan gambar');
+      toast.error('Failed to save image');
+      setDebugInfo(`Save failed: ${error}`);
     }
     setIsLoading(false);
   };
@@ -371,6 +446,7 @@ export function ImageEditor({
     console.log('🚪 Closing image editor');
     setLoadingError(null);
     setCanvasReady(false);
+    setDebugInfo('');
     onClose();
   };
 
@@ -380,20 +456,20 @@ export function ImageEditor({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Crop className="h-5 w-5" />
-            Edit Gambar
+            Edit Image
           </DialogTitle>
           <DialogDescription>
-            Gunakan tools di bawah untuk mengedit gambar Anda. Anda dapat memutar, membalik, mengubah rasio aspek, dan mengatur kualitas gambar.
+            Use the tools below to edit your image. You can rotate, flip, change aspect ratio, and adjust image quality.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Debug Info (only show in development) */}
+          {/* Debug Info */}
           {process.env.NODE_ENV === 'development' && (
             <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-              Canvas: {canvasReady ? '✅' : '❌'} | 
-              Objects: {fabricCanvas?.getObjects().length || 0} | 
-              URL: {imageUrl ? '✅' : '❌'}
+              <div>Canvas: {canvasReady ? '✅' : '❌'} | Objects: {fabricCanvas?.getObjects().length || 0}</div>
+              <div>URL: {imageUrl ? imageUrl.substring(0, 50) + '...' : '❌'}</div>
+              <div>Status: {debugInfo}</div>
             </div>
           )}
 
@@ -401,7 +477,7 @@ export function ImageEditor({
           {isLoading && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin mr-2" />
-              <span>Memuat gambar...</span>
+              <span>Loading image...</span>
             </div>
           )}
 
@@ -415,7 +491,7 @@ export function ImageEditor({
                 className="mt-2"
                 onClick={() => window.location.reload()}
               >
-                Muat Ulang
+                Reload
               </Button>
             </div>
           )}
@@ -431,7 +507,7 @@ export function ImageEditor({
                   disabled={isLoading || !currentImage}
                 >
                   <RotateCcw className="h-4 w-4 mr-1" />
-                  Putar Kiri
+                  Rotate Left
                 </Button>
                 
                 <Button
@@ -441,7 +517,7 @@ export function ImageEditor({
                   disabled={isLoading || !currentImage}
                 >
                   <RotateCw className="h-4 w-4 mr-1" />
-                  Putar Kanan
+                  Rotate Right
                 </Button>
                 
                 <Button
@@ -451,7 +527,7 @@ export function ImageEditor({
                   disabled={isLoading || !currentImage}
                 >
                   <FlipHorizontal className="h-4 w-4 mr-1" />
-                  Balik H
+                  Flip H
                 </Button>
                 
                 <Button
@@ -461,7 +537,7 @@ export function ImageEditor({
                   disabled={isLoading || !currentImage}
                 >
                   <FlipVertical className="h-4 w-4 mr-1" />
-                  Balik V
+                  Flip V
                 </Button>
                 
                 <Button
@@ -478,7 +554,7 @@ export function ImageEditor({
               {/* Settings */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                 <div className="space-y-2">
-                  <Label>Rasio Aspek</Label>
+                  <Label>Aspect Ratio</Label>
                   <Select value={selectedAspectRatio} onValueChange={handleAspectRatioChange}>
                     <SelectTrigger>
                       <SelectValue />
@@ -494,7 +570,7 @@ export function ImageEditor({
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Kualitas: {Math.round(quality[0] * 100)}%</Label>
+                  <Label>Quality: {Math.round(quality[0] * 100)}%</Label>
                   <Slider
                     value={quality}
                     onValueChange={setQuality}
@@ -510,12 +586,12 @@ export function ImageEditor({
               <div className="flex justify-center p-4 bg-gray-100 rounded-lg">
                 <canvas
                   ref={canvasRef}
-                  className="border border-gray-300 rounded shadow-sm max-w-full max-h-[400px]"
+                  className="border-2 border-gray-300 rounded shadow-sm max-w-full max-h-[400px] bg-white"
                   style={{ display: canvasReady ? 'block' : 'none' }}
                 />
                 {!canvasReady && (
                   <div className="w-full h-[400px] bg-gray-200 rounded flex items-center justify-center">
-                    <span className="text-gray-500">Menginisialisasi canvas...</span>
+                    <span className="text-gray-500">Initializing canvas...</span>
                   </div>
                 )}
               </div>
@@ -526,7 +602,7 @@ export function ImageEditor({
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={handleClose} disabled={isLoading}>
               <X className="h-4 w-4 mr-1" />
-              Batal
+              Cancel
             </Button>
             <Button 
               onClick={handleSave} 
@@ -534,7 +610,7 @@ export function ImageEditor({
               className="bg-amber-600 hover:bg-amber-700"
             >
               <Download className="h-4 w-4 mr-1" />
-              {isLoading ? 'Menyimpan...' : 'Simpan Gambar'}
+              {isLoading ? 'Saving...' : 'Save Image'}
             </Button>
           </div>
         </div>
