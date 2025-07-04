@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Canvas as FabricCanvas, Image as FabricImage } from 'fabric';
+import { Canvas as FabricCanvas, FabricImage } from 'fabric';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
@@ -54,181 +54,302 @@ export function ImageEditor({
   const [selectedAspectRatio, setSelectedAspectRatio] = useState('0');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [canvasReady, setCanvasReady] = useState(false);
 
   // Initialize canvas
   useEffect(() => {
     if (!isOpen || !canvasRef.current) return;
 
-    console.log('Initializing canvas...');
-    const canvas = new FabricCanvas(canvasRef.current, {
-      width: maxWidth,
-      height: maxHeight,
-      backgroundColor: '#f8f9fa',
-    });
+    console.log('🎨 Initializing canvas...');
+    
+    try {
+      const canvas = new FabricCanvas(canvasRef.current, {
+        width: maxWidth,
+        height: maxHeight,
+        backgroundColor: '#ffffff',
+        selection: true,
+      });
 
-    setFabricCanvas(canvas);
-    console.log('Canvas initialized:', canvas);
+      // Ensure canvas is properly initialized
+      canvas.renderAll();
+      
+      setFabricCanvas(canvas);
+      setCanvasReady(true);
+      console.log('✅ Canvas initialized successfully:', {
+        width: canvas.getWidth(),
+        height: canvas.getHeight(),
+        backgroundColor: canvas.backgroundColor
+      });
 
-    return () => {
-      console.log('Disposing canvas...');
-      canvas.dispose();
-    };
+      return () => {
+        console.log('🗑️ Disposing canvas...');
+        setCanvasReady(false);
+        canvas.dispose();
+      };
+    } catch (error) {
+      console.error('❌ Error initializing canvas:', error);
+      setLoadingError('Gagal menginisialisasi canvas');
+    }
   }, [isOpen, maxWidth, maxHeight]);
 
-  // Load image into canvas
+  // Load image into canvas using Fabric.js v6 API
   useEffect(() => {
-    if (!fabricCanvas || !imageUrl) return;
+    if (!fabricCanvas || !imageUrl || !canvasReady) {
+      console.log('⏳ Waiting for canvas or image URL...', { 
+        fabricCanvas: !!fabricCanvas, 
+        imageUrl: !!imageUrl, 
+        canvasReady 
+      });
+      return;
+    }
 
-    console.log('Loading image:', imageUrl);
+    console.log('🖼️ Starting image load process:', imageUrl);
     setIsLoading(true);
     setLoadingError(null);
 
-    // Create image element directly instead of using util.loadImage
-    const imgElement = new Image();
-    
-    imgElement.onload = () => {
-      console.log('Image loaded successfully:', imgElement.width, 'x', imgElement.height);
-      
+    // Method 1: Try loading with FabricImage.fromURL (Fabric.js v6 recommended method)
+    const loadImageFromURL = async () => {
       try {
-        const fabricImg = new FabricImage(imgElement, {
-          left: 0,
-          top: 0,
-          selectable: true,
-          evented: true,
+        console.log('📥 Loading image from URL using FabricImage.fromURL...');
+        
+        const fabricImg = await FabricImage.fromURL(imageUrl, {
+          crossOrigin: null // Remove CORS for Supabase storage
         });
 
-        // Calculate scale to fit canvas while maintaining aspect ratio
-        const imgWidth = imgElement.width;
-        const imgHeight = imgElement.height;
-        
-        const scaleX = (maxWidth * 0.9) / imgWidth; // Use 90% of canvas width
-        const scaleY = (maxHeight * 0.9) / imgHeight; // Use 90% of canvas height
-        const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
-        
-        console.log('Calculated scale:', scale);
-        
-        if (scale < 1) {
-          fabricImg.scale(scale);
+        if (!fabricImg) {
+          throw new Error('Failed to create FabricImage from URL');
         }
 
-        // Center the image on canvas
+        console.log('✅ Image loaded successfully:', {
+          width: fabricImg.width,
+          height: fabricImg.height,
+          src: fabricImg.getSrc()
+        });
+
+        // Calculate scale to fit canvas
+        const imgWidth = fabricImg.width || 100;
+        const imgHeight = fabricImg.height || 100;
         const canvasWidth = fabricCanvas.getWidth();
         const canvasHeight = fabricCanvas.getHeight();
+        
+        // Use 80% of canvas size for better visibility
+        const maxImgWidth = canvasWidth * 0.8;
+        const maxImgHeight = canvasHeight * 0.8;
+        
+        const scaleX = maxImgWidth / imgWidth;
+        const scaleY = maxImgHeight / imgHeight;
+        const scale = Math.min(scaleX, scaleY, 1); // Don't scale up
+        
+        console.log('📏 Calculated scaling:', { scaleX, scaleY, finalScale: scale });
+
+        // Apply scaling
+        fabricImg.scale(scale);
+
+        // Center the image
         const scaledWidth = imgWidth * scale;
         const scaledHeight = imgHeight * scale;
         
         fabricImg.set({
           left: (canvasWidth - scaledWidth) / 2,
-          top: (canvasHeight - scaledHeight) / 2
+          top: (canvasHeight - scaledHeight) / 2,
+          selectable: true,
+          evented: true,
+        });
+
+        console.log('📍 Image positioned at:', {
+          left: fabricImg.left,
+          top: fabricImg.top,
+          scaledWidth,
+          scaledHeight
         });
 
         // Clear canvas and add image
         fabricCanvas.clear();
         fabricCanvas.add(fabricImg);
         fabricCanvas.setActiveObject(fabricImg);
-        fabricCanvas.renderAll();
+        
+        // Force render
+        fabricCanvas.requestRenderAll();
+        
+        console.log('🎯 Canvas objects after adding image:', fabricCanvas.getObjects().length);
 
         setOriginalImage(fabricImg);
         setCurrentImage(fabricImg);
         setIsLoading(false);
         
-        console.log('Image added to canvas successfully');
+        console.log('✅ Image successfully added to canvas');
+        
       } catch (error) {
-        console.error('Error creating fabric image:', error);
-        setLoadingError('Gagal memproses gambar');
-        setIsLoading(false);
+        console.error('❌ Error with FabricImage.fromURL:', error);
+        // Fallback to manual image element creation
+        loadImageManually();
       }
     };
 
-    imgElement.onerror = (error) => {
-      console.error('Error loading image:', error);
-      setLoadingError('Gagal memuat gambar. Pastikan URL gambar valid.');
-      setIsLoading(false);
+    // Method 2: Fallback manual loading
+    const loadImageManually = () => {
+      console.log('🔄 Trying manual image loading as fallback...');
+      
+      const imgElement = new Image();
+      
+      imgElement.onload = async () => {
+        try {
+          console.log('✅ Image element loaded:', {
+            width: imgElement.width,
+            height: imgElement.height,
+            src: imgElement.src
+          });
+          
+          // Create FabricImage from loaded element
+          const fabricImg = await FabricImage.fromElement(imgElement, {
+            left: 0,
+            top: 0,
+            selectable: true,
+            evented: true,
+          });
+
+          // Apply same scaling and positioning logic
+          const imgWidth = imgElement.width;
+          const imgHeight = imgElement.height;
+          const canvasWidth = fabricCanvas.getWidth();
+          const canvasHeight = fabricCanvas.getHeight();
+          
+          const maxImgWidth = canvasWidth * 0.8;
+          const maxImgHeight = canvasHeight * 0.8;
+          
+          const scaleX = maxImgWidth / imgWidth;
+          const scaleY = maxImgHeight / imgHeight;
+          const scale = Math.min(scaleX, scaleY, 1);
+          
+          fabricImg.scale(scale);
+          
+          const scaledWidth = imgWidth * scale;
+          const scaledHeight = imgHeight * scale;
+          
+          fabricImg.set({
+            left: (canvasWidth - scaledWidth) / 2,
+            top: (canvasHeight - scaledHeight) / 2
+          });
+
+          fabricCanvas.clear();
+          fabricCanvas.add(fabricImg);
+          fabricCanvas.setActiveObject(fabricImg);
+          fabricCanvas.requestRenderAll();
+
+          setOriginalImage(fabricImg);
+          setCurrentImage(fabricImg);
+          setIsLoading(false);
+          
+          console.log('✅ Manual image loading successful');
+          
+        } catch (error) {
+          console.error('❌ Error creating FabricImage from element:', error);
+          setLoadingError('Gagal memproses gambar');
+          setIsLoading(false);
+        }
+      };
+
+      imgElement.onerror = (error) => {
+        console.error('❌ Image element failed to load:', error);
+        setLoadingError('Gagal memuat gambar. Periksa URL gambar.');
+        setIsLoading(false);
+      };
+
+      // Add timeout for image loading
+      const timeout = setTimeout(() => {
+        console.error('⏰ Image loading timeout');
+        setLoadingError('Timeout saat memuat gambar');
+        setIsLoading(false);
+      }, 10000);
+
+      imgElement.onload = (e) => {
+        clearTimeout(timeout);
+        imgElement.onload(e);
+      };
+
+      imgElement.src = imageUrl;
     };
 
-    // Set image source (remove crossOrigin for Supabase storage)
-    imgElement.src = imageUrl;
+    // Start with preferred method
+    loadImageFromURL();
     
-  }, [fabricCanvas, imageUrl, maxWidth, maxHeight]);
+  }, [fabricCanvas, imageUrl, maxWidth, maxHeight, canvasReady]);
 
   const rotateImage = (degrees: number) => {
     if (!currentImage || !fabricCanvas) return;
     
-    console.log(`Rotating image by ${degrees} degrees`);
+    console.log(`🔄 Rotating image by ${degrees} degrees`);
     const currentAngle = currentImage.angle || 0;
     currentImage.set('angle', currentAngle + degrees);
-    fabricCanvas.renderAll();
+    fabricCanvas.requestRenderAll();
   };
 
   const flipImage = (direction: 'horizontal' | 'vertical') => {
     if (!currentImage || !fabricCanvas) return;
 
-    console.log(`Flipping image ${direction}`);
+    console.log(`🔄 Flipping image ${direction}`);
     if (direction === 'horizontal') {
       currentImage.set('flipX', !currentImage.flipX);
     } else {
       currentImage.set('flipY', !currentImage.flipY);
     }
     
-    fabricCanvas.renderAll();
+    fabricCanvas.requestRenderAll();
   };
 
   const resetImage = async () => {
-    if (!originalImage || !fabricCanvas || !imageUrl) return;
+    if (!fabricCanvas || !imageUrl) return;
 
-    console.log('Resetting image to original state');
+    console.log('🔄 Resetting image to original state');
     setIsLoading(true);
+    setLoadingError(null);
     
     try {
-      // Recreate image from original URL
-      const imgElement = new Image();
+      // Recreate image using the same loading method
+      const fabricImg = await FabricImage.fromURL(imageUrl, {
+        crossOrigin: null
+      });
       
-      imgElement.onload = () => {
-        const newImg = new FabricImage(imgElement, {
-          left: 0,
-          top: 0,
-          selectable: true,
-          evented: true,
-          angle: 0,
-          flipX: false,
-          flipY: false,
-        });
-        
-        // Apply same scaling as initial load
-        const imgWidth = imgElement.width;
-        const imgHeight = imgElement.height;
-        const scaleX = (maxWidth * 0.9) / imgWidth;
-        const scaleY = (maxHeight * 0.9) / imgHeight;
-        const scale = Math.min(scaleX, scaleY, 1);
-        
-        if (scale < 1) {
-          newImg.scale(scale);
-        }
+      // Apply original scaling and positioning
+      const imgWidth = fabricImg.width || 100;
+      const imgHeight = fabricImg.height || 100;
+      const canvasWidth = fabricCanvas.getWidth();
+      const canvasHeight = fabricCanvas.getHeight();
+      
+      const maxImgWidth = canvasWidth * 0.8;
+      const maxImgHeight = canvasHeight * 0.8;
+      
+      const scaleX = maxImgWidth / imgWidth;
+      const scaleY = maxImgHeight / imgHeight;
+      const scale = Math.min(scaleX, scaleY, 1);
+      
+      fabricImg.scale(scale);
+      
+      const scaledWidth = imgWidth * scale;
+      const scaledHeight = imgHeight * scale;
+      
+      fabricImg.set({
+        left: (canvasWidth - scaledWidth) / 2,
+        top: (canvasHeight - scaledHeight) / 2,
+        selectable: true,
+        evented: true,
+        angle: 0,
+        flipX: false,
+        flipY: false,
+      });
 
-        // Center the image
-        const canvasWidth = fabricCanvas.getWidth();
-        const canvasHeight = fabricCanvas.getHeight();
-        const scaledWidth = imgWidth * scale;
-        const scaledHeight = imgHeight * scale;
-        
-        newImg.set({
-          left: (canvasWidth - scaledWidth) / 2,
-          top: (canvasHeight - scaledHeight) / 2
-        });
-
-        fabricCanvas.clear();
-        fabricCanvas.add(newImg);
-        fabricCanvas.setActiveObject(newImg);
-        fabricCanvas.renderAll();
-        
-        setCurrentImage(newImg);
-        setSelectedAspectRatio('0');
-        setIsLoading(false);
-      };
-
-      imgElement.src = imageUrl;
+      fabricCanvas.clear();
+      fabricCanvas.add(fabricImg);
+      fabricCanvas.setActiveObject(fabricImg);
+      fabricCanvas.requestRenderAll();
+      
+      setCurrentImage(fabricImg);
+      setSelectedAspectRatio('0');
+      setIsLoading(false);
+      
+      console.log('✅ Image reset successful');
     } catch (error) {
-      console.error('Error resetting image:', error);
+      console.error('❌ Error resetting image:', error);
       toast.error('Gagal reset gambar');
       setIsLoading(false);
     }
@@ -237,7 +358,7 @@ export function ImageEditor({
   const applyAspectRatio = (ratio: number) => {
     if (!currentImage || !fabricCanvas || ratio === 0) return;
 
-    console.log('Applying aspect ratio:', ratio);
+    console.log('📐 Applying aspect ratio:', ratio);
     
     const currentWidth = currentImage.getScaledWidth();
     const currentHeight = currentImage.getScaledHeight();
@@ -252,8 +373,8 @@ export function ImageEditor({
       newHeight = newWidth / ratio;
     }
     
-    const scaleX = newWidth / currentImage.width!;
-    const scaleY = newHeight / currentImage.height!;
+    const scaleX = newWidth / (currentImage.width || 1);
+    const scaleY = newHeight / (currentImage.height || 1);
     const scale = Math.min(scaleX, scaleY);
     
     currentImage.scale(scale);
@@ -267,7 +388,7 @@ export function ImageEditor({
       top: (canvasHeight - newHeight) / 2
     });
     
-    fabricCanvas.renderAll();
+    fabricCanvas.requestRenderAll();
   };
 
   const handleAspectRatioChange = (value: string) => {
@@ -281,7 +402,7 @@ export function ImageEditor({
   const handleSave = async () => {
     if (!fabricCanvas) return;
 
-    console.log('Saving edited image...');
+    console.log('💾 Saving edited image...');
     setIsLoading(true);
     try {
       const dataURL = fabricCanvas.toDataURL({
@@ -294,20 +415,21 @@ export function ImageEditor({
       const response = await fetch(dataURL);
       const blob = await response.blob();
 
-      console.log('Image saved successfully');
+      console.log('✅ Image saved successfully, blob size:', blob.size);
       onSave(blob);
       toast.success('Gambar berhasil diedit');
       onClose();
     } catch (error) {
-      console.error('Error saving image:', error);
+      console.error('❌ Error saving image:', error);
       toast.error('Gagal menyimpan gambar');
     }
     setIsLoading(false);
   };
 
   const handleClose = () => {
-    console.log('Closing image editor');
+    console.log('🚪 Closing image editor');
     setLoadingError(null);
+    setCanvasReady(false);
     onClose();
   };
 
@@ -325,6 +447,15 @@ export function ImageEditor({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Debug Info (only show in development) */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+              Canvas: {canvasReady ? '✅' : '❌'} | 
+              Objects: {fabricCanvas?.getObjects().length || 0} | 
+              URL: {imageUrl ? '✅' : '❌'}
+            </div>
+          )}
+
           {/* Loading State */}
           {isLoading && (
             <div className="flex items-center justify-center py-8">
@@ -349,14 +480,14 @@ export function ImageEditor({
           )}
 
           {/* Toolbar */}
-          {!isLoading && !loadingError && (
+          {canvasReady && !isLoading && !loadingError && (
             <>
               <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => rotateImage(-90)}
-                  disabled={isLoading}
+                  disabled={isLoading || !currentImage}
                 >
                   <RotateCcw className="h-4 w-4 mr-1" />
                   Putar Kiri
@@ -366,7 +497,7 @@ export function ImageEditor({
                   variant="outline"
                   size="sm"
                   onClick={() => rotateImage(90)}
-                  disabled={isLoading}
+                  disabled={isLoading || !currentImage}
                 >
                   <RotateCw className="h-4 w-4 mr-1" />
                   Putar Kanan
@@ -376,7 +507,7 @@ export function ImageEditor({
                   variant="outline"
                   size="sm"
                   onClick={() => flipImage('horizontal')}
-                  disabled={isLoading}
+                  disabled={isLoading || !currentImage}
                 >
                   <FlipHorizontal className="h-4 w-4 mr-1" />
                   Balik H
@@ -386,7 +517,7 @@ export function ImageEditor({
                   variant="outline"
                   size="sm"
                   onClick={() => flipImage('vertical')}
-                  disabled={isLoading}
+                  disabled={isLoading || !currentImage}
                 >
                   <FlipVertical className="h-4 w-4 mr-1" />
                   Balik V
@@ -396,7 +527,7 @@ export function ImageEditor({
                   variant="outline"
                   size="sm"
                   onClick={resetImage}
-                  disabled={isLoading}
+                  disabled={isLoading || !currentImage}
                 >
                   <RefreshCw className="h-4 w-4 mr-1" />
                   Reset
@@ -439,7 +570,13 @@ export function ImageEditor({
                 <canvas
                   ref={canvasRef}
                   className="border border-gray-300 rounded shadow-sm max-w-full max-h-[400px]"
+                  style={{ display: canvasReady ? 'block' : 'none' }}
                 />
+                {!canvasReady && (
+                  <div className="w-full h-[400px] bg-gray-200 rounded flex items-center justify-center">
+                    <span className="text-gray-500">Menginisialisasi canvas...</span>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -452,7 +589,7 @@ export function ImageEditor({
             </Button>
             <Button 
               onClick={handleSave} 
-              disabled={isLoading || !!loadingError} 
+              disabled={isLoading || !!loadingError || !currentImage} 
               className="bg-amber-600 hover:bg-amber-700"
             >
               <Download className="h-4 w-4 mr-1" />
