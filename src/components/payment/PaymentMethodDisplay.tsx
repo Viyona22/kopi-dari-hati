@@ -6,6 +6,7 @@ import { QrCode, Building, Smartphone, Copy, CreditCard } from 'lucide-react';
 import { useCafeSettings } from '@/hooks/useCafeSettings';
 import { toast } from 'sonner';
 import QRCode from 'react-qr-code';
+import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '@/components/payment/PaymentConstants';
 
 interface PaymentMethodDisplayProps {
   selectedMethod: string;
@@ -17,6 +18,7 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
 
   console.log('PaymentMethodDisplay - Payment methods data:', paymentMethods);
   console.log('PaymentMethodDisplay - Loading state:', loading);
+  console.log('PaymentMethodDisplay - Selected method:', selectedMethod);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -27,8 +29,8 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
 
   // Add COD as always available
   availableMethods.push({
-    id: 'cod',
-    title: 'Cash on Delivery (COD)',
+    id: PAYMENT_METHODS.COD,
+    title: PAYMENT_METHOD_LABELS[PAYMENT_METHODS.COD],
     icon: CreditCard,
     description: 'Bayar saat pesanan diterima'
   });
@@ -37,8 +39,8 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
   if (paymentMethods?.qris?.enabled && paymentMethods?.qris?.value) {
     console.log('Adding QRIS method:', paymentMethods.qris);
     availableMethods.push({
-      id: 'qris',
-      title: 'QRIS',
+      id: PAYMENT_METHODS.QRIS,
+      title: PAYMENT_METHOD_LABELS[PAYMENT_METHODS.QRIS],
       icon: QrCode,
       description: 'Scan QR Code untuk pembayaran'
     });
@@ -48,8 +50,8 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
   if (paymentMethods?.bank?.enabled && paymentMethods?.bank?.account) {
     console.log('Adding Bank Transfer method:', paymentMethods.bank);
     availableMethods.push({
-      id: 'bank_transfer',
-      title: 'Transfer Bank',
+      id: PAYMENT_METHODS.BANK_TRANSFER,
+      title: PAYMENT_METHOD_LABELS[PAYMENT_METHODS.BANK_TRANSFER],
       icon: Building,
       description: 'Transfer ke rekening bank'
     });
@@ -65,8 +67,8 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
     
     if (enabledWallets.length > 0) {
       availableMethods.push({
-        id: 'ewallet',
-        title: 'E-Wallet',
+        id: PAYMENT_METHODS.EWALLET,
+        title: PAYMENT_METHOD_LABELS[PAYMENT_METHODS.EWALLET],
         icon: Smartphone,
         description: `${enabledWallets.map(([wallet, _]) => wallet.toUpperCase()).join(', ')}`
       });
@@ -117,7 +119,7 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
       </div>
 
       {/* Payment Details */}
-      {selectedMethod && selectedMethod !== 'cod' && (
+      {selectedMethod && selectedMethod !== PAYMENT_METHODS.COD && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Detail Pembayaran</CardTitle>
@@ -125,7 +127,7 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
           <CardContent className="space-y-4">
             
             {/* QRIS Details */}
-            {selectedMethod === 'qris' && paymentMethods?.qris?.value && (
+            {selectedMethod === PAYMENT_METHODS.QRIS && paymentMethods?.qris?.value && (
               <div className="space-y-4">
                 <p className="text-sm text-gray-600">
                   Scan QR Code di bawah atau gunakan link QRIS:
@@ -158,7 +160,7 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
             )}
 
             {/* Bank Transfer Details */}
-            {selectedMethod === 'bank_transfer' && paymentMethods?.bank?.account && (
+            {selectedMethod === PAYMENT_METHODS.BANK_TRANSFER && paymentMethods?.bank?.account && (
               <div className="space-y-3">
                 <p className="text-sm text-gray-600">
                   Transfer ke rekening berikut:
@@ -196,7 +198,7 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
             )}
 
             {/* E-wallet Details */}
-            {selectedMethod === 'ewallet' && (
+            {selectedMethod === PAYMENT_METHODS.EWALLET && (
               <div className="space-y-3">
                 <p className="text-sm text-gray-600">
                   Metode e-wallet yang tersedia:
@@ -247,7 +249,7 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
         </Card>
       )}
 
-      {selectedMethod === 'cod' && (
+      {selectedMethod === PAYMENT_METHODS.COD && (
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-gray-600">

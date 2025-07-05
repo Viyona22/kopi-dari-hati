@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCafeSettings } from '@/hooks/useCafeSettings';
+import { PAYMENT_METHODS } from '@/components/payment/PaymentConstants';
 
 import {
   Form,
@@ -47,6 +48,17 @@ export default function Checkout() {
 
   async function onSubmit(data: CheckoutFormValues) {
     console.log('Starting checkout process with data:', data);
+    console.log('Selected payment method:', data.paymentMethod);
+    
+    // Validate payment method exists in available methods
+    const availablePaymentMethods = getAvailablePaymentMethods();
+    console.log('Available payment methods:', availablePaymentMethods);
+    
+    if (!availablePaymentMethods.includes(data.paymentMethod)) {
+      console.error('Invalid payment method selected:', data.paymentMethod);
+      console.error('Available methods:', availablePaymentMethods);
+      return;
+    }
     
     // Prepare order data
     const orderData = {
@@ -61,7 +73,7 @@ export default function Checkout() {
         image: item.image
       })),
       total_amount: totalPrice,
-      payment_method: data.paymentMethod,
+      payment_method: data.paymentMethod, // This should match PAYMENT_METHODS constants
       status: 'Diproses' as const
     };
 
@@ -83,25 +95,31 @@ export default function Checkout() {
   const getAvailablePaymentMethods = () => {
     const methods = [];
     
-    if (paymentMethods.qris.enabled) {
-      methods.push('qris');
+    console.log('Checking payment methods configuration:', paymentMethods);
+    
+    // Always add COD first
+    methods.push(PAYMENT_METHODS.COD);
+    
+    if (paymentMethods.qris.enabled && paymentMethods.qris.value) {
+      console.log('Adding QRIS method');
+      methods.push(PAYMENT_METHODS.QRIS);
     }
     
-    if (paymentMethods.bank.enabled) {
-      methods.push('bank_transfer');
+    if (paymentMethods.bank.enabled && paymentMethods.bank.account) {
+      console.log('Adding bank transfer method');
+      methods.push(PAYMENT_METHODS.BANK_TRANSFER);
     }
     
     if (paymentMethods.ewallet.enabled) {
       const enabledWallets = Object.entries(paymentMethods.ewallet.options)
         .filter(([_, enabled]) => enabled);
+      console.log('Enabled e-wallets:', enabledWallets);
       if (enabledWallets.length > 0) {
-        methods.push('ewallet');
+        methods.push(PAYMENT_METHODS.EWALLET);
       }
     }
     
-    // Add COD as fallback
-    methods.push('cod');
-    
+    console.log('Final available payment methods:', methods);
     return methods;
   };
 
