@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
@@ -12,6 +13,7 @@ import { PaymentTimer } from '@/components/payment/PaymentTimer';
 import { usePurchaseData } from '@/hooks/usePurchaseData';
 import { toast } from '@/hooks/use-toast';
 import { useAuthContext } from '@/components/auth/AuthProvider';
+import { VALID_PAYMENT_METHODS } from '@/components/payment/PaymentConstants';
 
 export default function Payment() {
   const location = useLocation();
@@ -63,8 +65,7 @@ export default function Payment() {
     }
 
     // Validate payment method before creating purchase
-    const validPaymentMethods = ['cod', 'qris', 'bank_transfer', 'ewallet'];
-    if (!validPaymentMethods.includes(data.payment_method)) {
+    if (!VALID_PAYMENT_METHODS.includes(data.payment_method)) {
       console.error('Invalid payment method:', data.payment_method);
       toast({
         title: "Error",
@@ -94,6 +95,7 @@ export default function Payment() {
         payment_deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       };
       
+      console.log('Saving purchase with user_id:', purchaseData);
       const result = await savePurchase(purchaseData);
       console.log('Purchase record created:', result);
       
@@ -257,7 +259,8 @@ export default function Payment() {
                 {currentPurchase && currentPurchase.payment_status === 'pending' && !currentPurchase.payment_proof_id && (
                   <PaymentMethodChangeModal
                     currentPaymentMethod={orderData.payment_method}
-                    onPaymentMethodChange={(newMethod) => {
+                    onPaymentMethodChange={async (newMethod) => {
+                      await handlePaymentMethodChange(newMethod);
                       setOrderData(prev => ({ ...prev, payment_method: newMethod }));
                       if (currentPurchase) {
                         setCurrentPurchase(prev => ({ ...prev, payment_method: newMethod }));
