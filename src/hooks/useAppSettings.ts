@@ -39,7 +39,7 @@ export function useAppSettings() {
     } catch (error) {
       console.error('Error fetching settings:', error);
       // Don't show error toast for permission issues
-      if (!(error as any)?.code === '42501') {
+      if (!((error as any)?.code === '42501')) {
         toast.error('Gagal memuat pengaturan');
       }
       setSettings([]);

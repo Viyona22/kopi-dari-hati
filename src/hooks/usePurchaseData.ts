@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase, Purchase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useAuthContext } from '@/components/auth/AuthProvider'
-import { VALID_PAYMENT_METHODS } from '@/components/payment/PaymentConstants'
+import { VALID_PAYMENT_METHODS, PaymentMethod } from '@/components/payment/PaymentConstants'
 
 export function usePurchaseData() {
   const [purchases, setPurchases] = useState<Purchase[]>([])
@@ -47,7 +47,7 @@ export function usePurchaseData() {
       }
 
       // Validate payment method before saving using constants
-      if (!VALID_PAYMENT_METHODS.includes(purchase.payment_method)) {
+      if (!VALID_PAYMENT_METHODS.includes(purchase.payment_method as PaymentMethod)) {
         console.error('Invalid payment method:', purchase.payment_method);
         console.error('Valid methods:', VALID_PAYMENT_METHODS);
         throw new Error('Metode pembayaran tidak valid');
