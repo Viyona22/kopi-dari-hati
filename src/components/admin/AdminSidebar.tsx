@@ -1,4 +1,3 @@
-
 import {
   Sidebar,
   SidebarContent,
@@ -41,7 +40,7 @@ const menuItems = [
   },
   {
     title: "Menu Analytics",
-    url: "/admin/menu-analytics",
+    url: "/admin/analytics",
     icon: TrendingUp,
   },
   {
