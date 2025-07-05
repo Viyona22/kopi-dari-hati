@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCafeSettings } from '@/hooks/useCafeSettings';
-import { PAYMENT_METHODS, VALID_PAYMENT_METHODS, validatePaymentMethod } from '@/components/payment/PaymentConstants';
+import { PAYMENT_METHODS, validatePaymentMethod } from '@/components/payment/PaymentConstants';
 
 import {
   Form,
@@ -47,7 +47,7 @@ export default function Checkout() {
   });
 
   async function onSubmit(data: CheckoutFormValues) {
-    console.log('=== CHECKOUT DEBUG ===');
+    console.log('=== CHECKOUT SUBMIT DEBUG ===');
     console.log('Form data:', data);
     console.log('Selected payment method:', data.paymentMethod);
     
@@ -58,17 +58,19 @@ export default function Checkout() {
     // Validate payment method exists in available methods
     if (!availablePaymentMethods.includes(data.paymentMethod)) {
       console.error('Payment method not in available methods:', data.paymentMethod);
-      console.error('Available:', availablePaymentMethods);
+      console.error('Available methods:', availablePaymentMethods);
       return;
     }
 
-    // Additional validation using the constants
+    // Additional validation using database constraint validation
     if (!validatePaymentMethod(data.paymentMethod)) {
-      console.error('Payment method failed validation:', data.paymentMethod);
+      console.error('Payment method failed database validation:', data.paymentMethod);
       return;
     }
     
-    // Prepare order data with explicit payment method mapping
+    console.log('✅ Payment method validation passed');
+    
+    // Prepare order data
     const orderData = {
       customer_name: data.name,
       customer_phone: data.phone,
@@ -81,12 +83,11 @@ export default function Checkout() {
         image: item.image
       })),
       total_amount: totalPrice,
-      payment_method: data.paymentMethod, // Use the exact value from form
+      payment_method: data.paymentMethod, // Use exact value from form
       status: 'Diproses' as const
     };
 
     console.log('Final order data:', orderData);
-    console.log('Payment method being sent:', orderData.payment_method);
 
     // Clear cart before navigating
     clearCart();
@@ -104,17 +105,17 @@ export default function Checkout() {
   const getAvailablePaymentMethods = () => {
     const methods = [];
     
-    console.log('=== PAYMENT METHODS CHECK ===');
+    console.log('=== PAYMENT METHODS AVAILABILITY CHECK ===');
     console.log('Payment methods config:', paymentMethods);
     
     if (paymentMethods?.qris?.enabled && paymentMethods?.qris?.value) {
-      console.log('QRIS is enabled and configured');
+      console.log('✅ QRIS is enabled and configured');
       methods.push(PAYMENT_METHODS.QRIS);
     }
     
     if (paymentMethods?.bank?.enabled && paymentMethods?.bank?.account) {
-      console.log('Bank transfer is enabled and configured');
-      console.log('Bank account:', paymentMethods.bank.account);
+      console.log('✅ Bank transfer is enabled and configured');
+      console.log('Bank account details:', paymentMethods.bank.account);
       methods.push(PAYMENT_METHODS.BANK_TRANSFER);
     }
     
@@ -123,12 +124,12 @@ export default function Checkout() {
         .filter(([_, enabled]) => enabled);
       console.log('E-wallet enabled wallets:', enabledWallets);
       if (enabledWallets.length > 0) {
-        console.log('E-wallet is enabled with options');
+        console.log('✅ E-wallet is enabled with options');
         methods.push(PAYMENT_METHODS.EWALLET);
       }
     }
     
-    console.log('Final available methods:', methods);
+    console.log('Final available methods for checkout:', methods);
     return methods;
   };
 
@@ -228,7 +229,7 @@ export default function Checkout() {
                         <PaymentMethodDisplay
                           selectedMethod={field.value}
                           onMethodChange={(method) => {
-                            console.log('Payment method selected:', method);
+                            console.log('Payment method selected in form:', method);
                             field.onChange(method);
                           }}
                           availableMethods={availablePaymentMethods}

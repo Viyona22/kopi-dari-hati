@@ -21,10 +21,11 @@ export const isValidPaymentMethod = (method: string): method is PaymentMethod =>
   return VALID_PAYMENT_METHODS.includes(method as PaymentMethod);
 };
 
-// Additional validation for debugging
-export const validatePaymentMethod = (method: string) => {
+// Validation function that matches database constraint exactly
+export const validatePaymentMethod = (method: string): boolean => {
   console.log('Validating payment method:', method);
-  console.log('Valid payment methods:', VALID_PAYMENT_METHODS);
-  console.log('Is valid:', isValidPaymentMethod(method));
-  return isValidPaymentMethod(method);
+  console.log('Valid payment methods (database constraint):', ['qris', 'bank_transfer', 'ewallet']);
+  const isValid = ['qris', 'bank_transfer', 'ewallet'].includes(method);
+  console.log('Is valid:', isValid);
+  return isValid;
 };
