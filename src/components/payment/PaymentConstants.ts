@@ -2,7 +2,7 @@
 // Payment method constants to ensure consistency across the app
 export const PAYMENT_METHODS = {
   QRIS: 'qris',
-  BANK_TRANSFER: 'bank_transfer',
+  BANK_TRANSFER: 'bank_transfer', 
   EWALLET: 'ewallet'
 } as const;
 
@@ -15,3 +15,8 @@ export const PAYMENT_METHOD_LABELS = {
 } as const;
 
 export const VALID_PAYMENT_METHODS = Object.values(PAYMENT_METHODS);
+
+// Helper function to validate payment method
+export const isValidPaymentMethod = (method: string): method is PaymentMethod => {
+  return VALID_PAYMENT_METHODS.includes(method as PaymentMethod);
+};

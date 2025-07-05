@@ -11,63 +11,61 @@ import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '@/components/payment/Pay
 interface PaymentMethodDisplayProps {
   selectedMethod: string;
   onMethodChange: (method: string) => void;
+  availableMethods?: string[];
 }
 
-export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: PaymentMethodDisplayProps) {
+export function PaymentMethodDisplay({ selectedMethod, onMethodChange, availableMethods }: PaymentMethodDisplayProps) {
   const { paymentMethods, loading } = useCafeSettings();
 
   console.log('PaymentMethodDisplay - Payment methods data:', paymentMethods);
   console.log('PaymentMethodDisplay - Loading state:', loading);
   console.log('PaymentMethodDisplay - Selected method:', selectedMethod);
+  console.log('PaymentMethodDisplay - Available methods from parent:', availableMethods);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} berhasil disalin`);
   };
 
-  const availableMethods = [];
+  // Use availableMethods prop if provided, otherwise determine from settings
+  const methodsToShow = availableMethods || [];
 
-  // Add QRIS if enabled and has value
-  if (paymentMethods?.qris?.enabled && paymentMethods?.qris?.value) {
-    console.log('Adding QRIS method:', paymentMethods.qris);
-    availableMethods.push({
-      id: PAYMENT_METHODS.QRIS,
-      title: PAYMENT_METHOD_LABELS[PAYMENT_METHODS.QRIS],
-      icon: QrCode,
-      description: 'Scan QR Code untuk pembayaran'
-    });
-  }
+  const getMethodOptions = () => {
+    const options = [];
 
-  // Add Bank Transfer if enabled and has account details
-  if (paymentMethods?.bank?.enabled && paymentMethods?.bank?.account) {
-    console.log('Adding Bank Transfer method:', paymentMethods.bank);
-    availableMethods.push({
-      id: PAYMENT_METHODS.BANK_TRANSFER,
-      title: PAYMENT_METHOD_LABELS[PAYMENT_METHODS.BANK_TRANSFER],
-      icon: Building,
-      description: 'Transfer ke rekening bank'
-    });
-  }
+    if (methodsToShow.includes(PAYMENT_METHODS.QRIS)) {
+      options.push({
+        id: PAYMENT_METHODS.QRIS,
+        title: PAYMENT_METHOD_LABELS[PAYMENT_METHODS.QRIS],
+        icon: QrCode,
+        description: 'Scan QR Code untuk pembayaran'
+      });
+    }
 
-  // Add E-wallet if enabled and has enabled options
-  if (paymentMethods?.ewallet?.enabled) {
-    console.log('E-wallet settings:', paymentMethods.ewallet);
-    const enabledWallets = Object.entries(paymentMethods.ewallet.options || {})
-      .filter(([_, enabled]) => enabled);
-    
-    console.log('Enabled wallets:', enabledWallets);
-    
-    if (enabledWallets.length > 0) {
-      availableMethods.push({
+    if (methodsToShow.includes(PAYMENT_METHODS.BANK_TRANSFER)) {
+      options.push({
+        id: PAYMENT_METHODS.BANK_TRANSFER,
+        title: PAYMENT_METHOD_LABELS[PAYMENT_METHODS.BANK_TRANSFER],
+        icon: Building,
+        description: 'Transfer ke rekening bank'
+      });
+    }
+
+    if (methodsToShow.includes(PAYMENT_METHODS.EWALLET)) {
+      const enabledWallets = Object.entries(paymentMethods?.ewallet?.options || {})
+        .filter(([_, enabled]) => enabled);
+      
+      options.push({
         id: PAYMENT_METHODS.EWALLET,
         title: PAYMENT_METHOD_LABELS[PAYMENT_METHODS.EWALLET],
         icon: Smartphone,
         description: `${enabledWallets.map(([wallet, _]) => wallet.toUpperCase()).join(', ')}`
       });
     }
-  }
 
-  console.log('Available payment methods:', availableMethods);
+    console.log('Payment method options to display:', options);
+    return options;
+  };
 
   if (loading) {
     return (
@@ -77,11 +75,13 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
     );
   }
 
+  const methodOptions = getMethodOptions();
+
   return (
     <div className="space-y-4">
       {/* Payment Method Selection */}
       <div className="grid gap-3">
-        {availableMethods.map((method) => {
+        {methodOptions.map((method) => {
           const Icon = method.icon;
           return (
             <Card 
@@ -109,6 +109,14 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
           );
         })}
       </div>
+
+      {methodOptions.length === 0 && (
+        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-yellow-800 text-sm">
+            Belum ada metode pembayaran yang tersedia. Silakan hubungi admin.
+          </p>
+        </div>
+      )}
 
       {/* Payment Details */}
       {selectedMethod && (

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase, Purchase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useAuthContext } from '@/components/auth/AuthProvider'
-import { VALID_PAYMENT_METHODS, PaymentMethod } from '@/components/payment/PaymentConstants'
+import { VALID_PAYMENT_METHODS, PaymentMethod, isValidPaymentMethod } from '@/components/payment/PaymentConstants'
 
 export function usePurchaseData() {
   const [purchases, setPurchases] = useState<Purchase[]>([])
@@ -48,21 +48,21 @@ export function usePurchaseData() {
       }
 
       // Validate payment method before saving using constants
-      const paymentMethod = purchase.payment_method as PaymentMethod;
+      const paymentMethod = purchase.payment_method;
       console.log('Validating payment method:', paymentMethod);
       console.log('Valid methods:', VALID_PAYMENT_METHODS);
       
-      if (!VALID_PAYMENT_METHODS.includes(paymentMethod)) {
+      if (!isValidPaymentMethod(paymentMethod)) {
         console.error('Invalid payment method:', paymentMethod);
         console.error('Valid methods:', VALID_PAYMENT_METHODS);
-        throw new Error('Metode pembayaran tidak valid. Pilihan: ' + VALID_PAYMENT_METHODS.join(', '));
+        throw new Error(`Metode pembayaran tidak valid. Pilihan yang tersedia: ${VALID_PAYMENT_METHODS.join(', ')}`);
       }
 
       // Add user_id to purchase data
       const purchaseData = {
         ...purchase,
         user_id: user.id,
-        payment_method: paymentMethod
+        payment_method: paymentMethod as PaymentMethod
       }
 
       console.log('Saving purchase with validated data:', purchaseData);
@@ -114,15 +114,14 @@ export function usePurchaseData() {
   const updatePaymentMethod = async (id: string, paymentMethod: string) => {
     try {
       // Validate payment method
-      const validatedMethod = paymentMethod as PaymentMethod;
-      if (!VALID_PAYMENT_METHODS.includes(validatedMethod)) {
+      if (!isValidPaymentMethod(paymentMethod)) {
         throw new Error('Metode pembayaran tidak valid');
       }
 
       const { error } = await supabase
         .from('purchases')
         .update({ 
-          payment_method: validatedMethod,
+          payment_method: paymentMethod as PaymentMethod,
           payment_proof_id: null // Reset proof if payment method changes
         })
         .eq('id', id)

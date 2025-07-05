@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Layout } from '../components/layout/Layout';
 import { useCart } from '@/context/CartContext';
@@ -6,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCafeSettings } from '@/hooks/useCafeSettings';
-import { PAYMENT_METHODS } from '@/components/payment/PaymentConstants';
+import { PAYMENT_METHODS, VALID_PAYMENT_METHODS, isValidPaymentMethod } from '@/components/payment/PaymentConstants';
 
 import {
   Form,
@@ -58,6 +59,12 @@ export default function Checkout() {
       console.error('Available methods:', availablePaymentMethods);
       return;
     }
+
+    // Additional validation to ensure the payment method is valid
+    if (!isValidPaymentMethod(data.paymentMethod)) {
+      console.error('Payment method not in valid constants:', data.paymentMethod);
+      return;
+    }
     
     // Prepare order data
     const orderData = {
@@ -72,7 +79,7 @@ export default function Checkout() {
         image: item.image
       })),
       total_amount: totalPrice,
-      payment_method: data.paymentMethod,
+      payment_method: data.paymentMethod, // This should now be a valid payment method constant
       status: 'Diproses' as const
     };
 
@@ -96,21 +103,22 @@ export default function Checkout() {
     
     console.log('Checking payment methods configuration:', paymentMethods);
     
-    if (paymentMethods.qris.enabled && paymentMethods.qris.value) {
+    if (paymentMethods?.qris?.enabled && paymentMethods?.qris?.value) {
       console.log('Adding QRIS method');
       methods.push(PAYMENT_METHODS.QRIS);
     }
     
-    if (paymentMethods.bank.enabled && paymentMethods.bank.account) {
+    if (paymentMethods?.bank?.enabled && paymentMethods?.bank?.account) {
       console.log('Adding bank transfer method');
       methods.push(PAYMENT_METHODS.BANK_TRANSFER);
     }
     
-    if (paymentMethods.ewallet.enabled) {
-      const enabledWallets = Object.entries(paymentMethods.ewallet.options)
+    if (paymentMethods?.ewallet?.enabled) {
+      const enabledWallets = Object.entries(paymentMethods.ewallet.options || {})
         .filter(([_, enabled]) => enabled);
       console.log('Enabled e-wallets:', enabledWallets);
       if (enabledWallets.length > 0) {
+        console.log('Adding e-wallet method');
         methods.push(PAYMENT_METHODS.EWALLET);
       }
     }
@@ -215,6 +223,7 @@ export default function Checkout() {
                         <PaymentMethodDisplay
                           selectedMethod={field.value}
                           onMethodChange={field.onChange}
+                          availableMethods={availablePaymentMethods}
                         />
                       </FormControl>
                       <FormMessage />
