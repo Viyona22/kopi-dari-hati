@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { QrCode, Building, Smartphone, Copy, CreditCard } from 'lucide-react';
 import { useCafeSettings } from '@/hooks/useCafeSettings';
 import { toast } from 'sonner';
+import QRCode from 'react-qr-code';
 
 interface PaymentMethodDisplayProps {
   selectedMethod: string;
@@ -32,8 +33,8 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
     description: 'Bayar saat pesanan diterima'
   });
 
-  // Add QRIS if enabled and has value (with fallback)
-  if (paymentMethods?.qris?.enabled !== false && paymentMethods?.qris?.value) {
+  // Add QRIS if enabled and has value
+  if (paymentMethods?.qris?.enabled && paymentMethods?.qris?.value) {
     console.log('Adding QRIS method:', paymentMethods.qris);
     availableMethods.push({
       id: 'qris',
@@ -43,8 +44,8 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
     });
   }
 
-  // Add Bank Transfer if enabled and has account details (with fallback)
-  if (paymentMethods?.bank?.enabled !== false && paymentMethods?.bank?.account) {
+  // Add Bank Transfer if enabled and has account details
+  if (paymentMethods?.bank?.enabled && paymentMethods?.bank?.account) {
     console.log('Adding Bank Transfer method:', paymentMethods.bank);
     availableMethods.push({
       id: 'bank_transfer',
@@ -54,7 +55,7 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
     });
   }
 
-  // Add E-wallet if enabled and has enabled options (with fallback)
+  // Add E-wallet if enabled and has enabled options
   if (paymentMethods?.ewallet?.enabled) {
     console.log('E-wallet settings:', paymentMethods.ewallet);
     const enabledWallets = Object.entries(paymentMethods.ewallet.options || {})
@@ -70,24 +71,6 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
         description: `${enabledWallets.map(([wallet, _]) => wallet.toUpperCase()).join(', ')}`
       });
     }
-  }
-
-  // If no methods are configured, show default methods
-  if (availableMethods.length === 1) { // Only COD
-    availableMethods.push(
-      {
-        id: 'qris',
-        title: 'QRIS',
-        icon: QrCode,
-        description: 'Scan QR Code untuk pembayaran'
-      },
-      {
-        id: 'bank_transfer',
-        title: 'Transfer Bank',
-        icon: Building,
-        description: 'Transfer ke rekening bank'
-      }
-    );
   }
 
   console.log('Available payment methods:', availableMethods);
@@ -143,10 +126,20 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
             
             {/* QRIS Details */}
             {selectedMethod === 'qris' && paymentMethods?.qris?.value && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <p className="text-sm text-gray-600">
                   Scan QR Code di bawah atau gunakan link QRIS:
                 </p>
+                
+                {/* QR Code Visual */}
+                <div className="flex justify-center p-4 bg-white border rounded-lg">
+                  <QRCode 
+                    value={paymentMethods.qris.value} 
+                    size={200}
+                    level="M"
+                  />
+                </div>
+                
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-mono break-all">
@@ -248,23 +241,6 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
                     Belum ada e-wallet yang diaktifkan
                   </p>
                 )}
-              </div>
-            )}
-
-            {/* Show default info if no specific payment method data */}
-            {selectedMethod === 'qris' && !paymentMethods?.qris?.value && (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  Silakan scan QR Code QRIS yang disediakan oleh merchant untuk melakukan pembayaran.
-                </p>
-              </div>
-            )}
-
-            {selectedMethod === 'bank_transfer' && !paymentMethods?.bank?.account && (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  Silakan transfer ke rekening yang akan diberikan oleh merchant setelah konfirmasi pesanan.
-                </p>
               </div>
             )}
           </CardContent>

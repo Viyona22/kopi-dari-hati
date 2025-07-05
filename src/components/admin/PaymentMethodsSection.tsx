@@ -10,13 +10,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { CreditCard, Save, QrCode, Building, Smartphone } from 'lucide-react';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { toast } from 'sonner';
+import QRCode from 'react-qr-code';
 
 export function PaymentMethodsSection() {
   const { getSetting, updateSetting, updating } = useAppSettings();
   
-  // QRIS Settings with default dummy value
+  // QRIS Settings with better default value
   const [qrisEnabled, setQrisEnabled] = useState(getSetting('payment_qris_enabled', true));
-  const [qrisValue, setQrisValue] = useState(getSetting('payment_qris_value', 'https://qris.example.com/dummy-qr-code-kopi-dari-hati'));
+  const [qrisValue, setQrisValue] = useState(getSetting('payment_qris_value', 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ID12345678901234567890123456789012345'));
   
   // Bank Transfer Settings
   const [bankEnabled, setBankEnabled] = useState(getSetting('payment_bank_enabled', true));
@@ -42,7 +43,7 @@ export function PaymentMethodsSection() {
   // Update state when settings change
   useEffect(() => {
     setQrisEnabled(getSetting('payment_qris_enabled', true));
-    setQrisValue(getSetting('payment_qris_value', 'https://qris.example.com/dummy-qr-code-kopi-dari-hati'));
+    setQrisValue(getSetting('payment_qris_value', 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ID12345678901234567890123456789012345'));
     setBankEnabled(getSetting('payment_bank_enabled', true));
     setBankAccount(getSetting('payment_bank_account', {
       bank: 'BCA',
@@ -138,22 +139,35 @@ export function PaymentMethodsSection() {
           </div>
           
           {qrisEnabled && (
-            <div className="space-y-2">
-              <Label htmlFor="qris-value">Link atau Kode QRIS *</Label>
-              <Textarea
-                id="qris-value"
-                value={qrisValue}
-                onChange={(e) => setQrisValue(e.target.value)}
-                placeholder="https://qris.example.com/dummy-qr-code-kopi-dari-hati"
-                rows={2}
-                className={!qrisValue.trim() ? 'border-red-300' : ''}
-              />
-              {!qrisValue.trim() && (
-                <p className="text-sm text-red-600">QRIS value wajib diisi</p>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="qris-value">Link atau Kode QRIS *</Label>
+                <Textarea
+                  id="qris-value"
+                  value={qrisValue}
+                  onChange={(e) => setQrisValue(e.target.value)}
+                  placeholder="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ID12345678901234567890123456789012345"
+                  rows={2}
+                  className={!qrisValue.trim() ? 'border-red-300' : ''}
+                />
+                {!qrisValue.trim() && (
+                  <p className="text-sm text-red-600">QRIS value wajib diisi</p>
+                )}
+              </div>
+              
+              {/* QR Code Preview */}
+              {qrisValue && (
+                <div className="space-y-2">
+                  <Label>Preview QR Code:</Label>
+                  <div className="flex justify-center p-4 bg-white border rounded-lg">
+                    <QRCode 
+                      value={qrisValue} 
+                      size={150}
+                      level="M"
+                    />
+                  </div>
+                </div>
               )}
-              <p className="text-xs text-gray-500">
-                Contoh: https://qris.example.com/dummy-qr-code-kopi-dari-hati
-              </p>
             </div>
           )}
         </div>
@@ -272,14 +286,6 @@ export function PaymentMethodsSection() {
           <Save className="h-4 w-4 mr-2" />
           {updating ? 'Menyimpan...' : 'Simpan Metode Pembayaran'}
         </Button>
-        
-        {/* Debug Info */}
-        <div className="mt-4 p-3 bg-gray-50 rounded text-xs">
-          <p className="font-medium mb-1">Debug Info:</p>
-          <p>E-wallet enabled: {ewalletEnabled ? 'Yes' : 'No'}</p>
-          <p>E-wallet options: {JSON.stringify(ewalletOptions)}</p>
-          <p>E-wallet contacts: {JSON.stringify(ewalletContacts)}</p>
-        </div>
       </CardContent>
     </Card>
   );

@@ -33,36 +33,55 @@ export function useCafeSettings() {
     };
   }, []);
 
-  // Provide fallback values if settings are not accessible
+  // Provide fallback values with more robust checking
+  const qrisEnabled = getSetting('payment_qris_enabled', true);
+  const qrisValue = getSetting('payment_qris_value', 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ID12345678901234567890123456789012345');
+  
+  const bankEnabled = getSetting('payment_bank_enabled', true);
+  const bankAccount = getSetting('payment_bank_account', {
+    bank: 'BCA',
+    account_number: '1234567890',
+    account_name: 'Kopi dari Hati'
+  });
+  
+  const ewalletEnabled = getSetting('payment_ewallet_enabled', false);
+  const ewalletOptions = getSetting('payment_ewallet_options', {
+    gopay: false,
+    ovo: false,
+    dana: false
+  });
+  const ewalletContacts = getSetting('payment_ewallet_contacts', {
+    gopay: '',
+    ovo: '',
+    dana: ''
+  });
+
   const paymentMethods = {
     qris: {
-      enabled: getSetting('payment_qris_enabled', true),
-      value: getSetting('payment_qris_value', 'https://qris.example.com/dummy-qr-code-kopi-dari-hati')
+      enabled: qrisEnabled !== false,
+      value: qrisValue && qrisValue !== '' ? qrisValue : null
     },
     bank: {
-      enabled: getSetting('payment_bank_enabled', true),
-      account: getSetting('payment_bank_account', {
-        bank: 'BCA',
-        account_number: '1234567890',
-        account_name: 'Kopi dari Hati'
-      })
+      enabled: bankEnabled !== false,
+      account: bankAccount
     },
     ewallet: {
-      enabled: getSetting('payment_ewallet_enabled', false),
-      options: getSetting('payment_ewallet_options', {
-        gopay: false,
-        ovo: false,
-        dana: false
-      }),
-      contacts: getSetting('payment_ewallet_contacts', {
-        gopay: '',
-        ovo: '',
-        dana: ''
-      })
+      enabled: ewalletEnabled === true,
+      options: ewalletOptions,
+      contacts: ewalletContacts
     }
   };
 
   console.log('useCafeSettings - Current payment methods:', paymentMethods);
+  console.log('useCafeSettings - Raw settings:', {
+    qrisEnabled,
+    qrisValue,
+    bankEnabled,
+    bankAccount,
+    ewalletEnabled,
+    ewalletOptions,
+    ewalletContacts
+  });
 
   return {
     cafeName: getSetting('cafe_name', 'Kopi dari Hati'),
