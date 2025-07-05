@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { supabase, Purchase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -46,27 +45,41 @@ export function usePurchaseData() {
         throw new Error('User not authenticated');
       }
 
+      // Validate payment method before saving
+      const validPaymentMethods = ['cod', 'qris', 'bank_transfer', 'ewallet'];
+      if (!validPaymentMethods.includes(purchase.payment_method)) {
+        console.error('Invalid payment method:', purchase.payment_method);
+        throw new Error('Metode pembayaran tidak valid');
+      }
+
       // Add user_id to purchase data
       const purchaseData = {
         ...purchase,
         user_id: user.id
       }
 
-      console.log('Saving purchase with user_id:', purchaseData);
+      console.log('Saving purchase with validated data:', purchaseData);
 
       const { data, error } = await supabase
         .from('purchases')
         .insert(purchaseData)
         .select()
 
-      if (error) throw error
+      if (error) {
+        console.error('Database error details:', error);
+        if (error.code === '23514') {
+          throw new Error('Metode pembayaran tidak valid. Silakan pilih metode yang tersedia.');
+        }
+        throw error;
+      }
       
       await loadPurchases() // Refresh data
       toast.success('Pembelian berhasil disimpan!')
       return data[0]
     } catch (error) {
       console.error('Error saving purchase:', error)
-      toast.error('Gagal menyimpan pembelian. Pastikan Anda sudah login.')
+      const errorMessage = error instanceof Error ? error.message : 'Gagal menyimpan pembelian';
+      toast.error(errorMessage)
       throw error
     }
   }

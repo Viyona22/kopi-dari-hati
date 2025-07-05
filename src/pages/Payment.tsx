@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
@@ -12,20 +11,31 @@ import { PaymentProofUpload } from '@/components/payment/PaymentProofUpload';
 import { PaymentTimer } from '@/components/payment/PaymentTimer';
 import { usePurchaseData } from '@/hooks/usePurchaseData';
 import { toast } from '@/hooks/use-toast';
+import { useAuthContext } from '@/components/auth/AuthProvider';
 
 export default function Payment() {
   const location = useLocation();
   const navigate = useNavigate();
   const { purchaseId } = useParams();
   const { savePurchase, updatePaymentMethod, purchases } = usePurchaseData();
+  const { user } = useAuthContext();
   const [orderData, setOrderData] = useState(null);
   const [finalPurchaseId, setFinalPurchaseId] = useState(purchaseId);
   const [paymentDeadline, setPaymentDeadline] = useState(null);
   const [currentPurchase, setCurrentPurchase] = useState(null);
+  const [isCreatingPurchase, setIsCreatingPurchase] = useState(false);
 
   useEffect(() => {
     console.log('Payment page loaded with params:', { purchaseId });
     console.log('Location state:', location.state);
+    console.log('User authenticated:', !!user);
+    
+    // Check if user is authenticated
+    if (!user) {
+      console.log('User not authenticated, redirecting to login');
+      navigate('/login');
+      return;
+    }
     
     const data = location.state?.orderData;
     if (!data) {
@@ -51,15 +61,31 @@ export default function Payment() {
       navigate('/checkout');
       return;
     }
+
+    // Validate payment method before creating purchase
+    const validPaymentMethods = ['cod', 'qris', 'bank_transfer', 'ewallet'];
+    if (!validPaymentMethods.includes(data.payment_method)) {
+      console.error('Invalid payment method:', data.payment_method);
+      toast({
+        title: "Error",
+        description: "Metode pembayaran tidak valid. Silakan pilih ulang metode pembayaran.",
+        variant: "destructive"
+      });
+      navigate('/checkout');
+      return;
+    }
     
     setOrderData(data);
     
     // Create purchase record when payment page loads
     createPurchaseRecord(data);
-  }, [location.state, navigate, purchaseId, purchases]);
+  }, [location.state, navigate, purchaseId, purchases, user]);
 
   const createPurchaseRecord = async (data) => {
+    if (isCreatingPurchase) return; // Prevent duplicate creation
+    
     try {
+      setIsCreatingPurchase(true);
       console.log('Creating purchase record with data:', data);
       
       const purchaseData = {
@@ -81,6 +107,9 @@ export default function Payment() {
         description: "Gagal membuat pesanan. Silakan coba lagi.",
         variant: "destructive"
       });
+      navigate('/checkout');
+    } finally {
+      setIsCreatingPurchase(false);
     }
   };
 
@@ -131,6 +160,18 @@ export default function Payment() {
     currentPurchase.status !== 'Selesai' &&
     currentPurchase.status !== 'Dibatalkan';
 
+  if (!user) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-gray-600">Silakan login terlebih dahulu untuk melanjutkan pembayaran.</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   if (!orderData) {
     return (
       <Layout>
@@ -149,7 +190,7 @@ export default function Payment() {
         <div className="mb-6">
           <Button
             variant="ghost"
-            onClick={handleBackToCheckout}
+            onClick={() => navigate('/checkout')}
             className="text-[#d4462d] hover:bg-[rgba(212,70,45,0.1)]"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -213,15 +254,20 @@ export default function Payment() {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">Metode Pembayaran</h3>
-                {canChangePaymentMethod && (
+                {currentPurchase && currentPurchase.payment_status === 'pending' && !currentPurchase.payment_proof_id && (
                   <PaymentMethodChangeModal
                     currentPaymentMethod={orderData.payment_method}
-                    onPaymentMethodChange={handlePaymentMethodChange}
+                    onPaymentMethodChange={(newMethod) => {
+                      setOrderData(prev => ({ ...prev, payment_method: newMethod }));
+                      if (currentPurchase) {
+                        setCurrentPurchase(prev => ({ ...prev, payment_method: newMethod }));
+                      }
+                    }}
                   />
                 )}
               </div>
               
-              {!canChangePaymentMethod && currentPurchase?.payment_proof_id && (
+              {currentPurchase?.payment_proof_id && (
                 <p className="text-sm text-gray-500">
                   Metode pembayaran tidak dapat diubah karena bukti pembayaran sudah diunggah.
                 </p>
@@ -233,7 +279,16 @@ export default function Payment() {
             {finalPurchaseId && (
               <PaymentProofUpload 
                 purchaseId={finalPurchaseId}
-                onUploadComplete={handlePaymentComplete}
+                onUploadComplete={() => {
+                  toast({
+                    title: "Bukti Pembayaran Berhasil Diunggah",
+                    description: "Pesanan Anda sedang menunggu verifikasi admin. Kami akan menghubungi Anda segera.",
+                  });
+                  
+                  setTimeout(() => {
+                    navigate('/');
+                  }, 3000);
+                }}
               />
             )}
           </div>
