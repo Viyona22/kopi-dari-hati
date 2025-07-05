@@ -20,3 +20,11 @@ export const VALID_PAYMENT_METHODS = Object.values(PAYMENT_METHODS);
 export const isValidPaymentMethod = (method: string): method is PaymentMethod => {
   return VALID_PAYMENT_METHODS.includes(method as PaymentMethod);
 };
+
+// Additional validation for debugging
+export const validatePaymentMethod = (method: string) => {
+  console.log('Validating payment method:', method);
+  console.log('Valid payment methods:', VALID_PAYMENT_METHODS);
+  console.log('Is valid:', isValidPaymentMethod(method));
+  return isValidPaymentMethod(method);
+};

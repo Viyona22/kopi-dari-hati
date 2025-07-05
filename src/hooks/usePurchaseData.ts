@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase, Purchase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useAuthContext } from '@/components/auth/AuthProvider'
-import { VALID_PAYMENT_METHODS, PaymentMethod, isValidPaymentMethod } from '@/components/payment/PaymentConstants'
+import { VALID_PAYMENT_METHODS, PaymentMethod, validatePaymentMethod } from '@/components/payment/PaymentConstants'
 
 export function usePurchaseData() {
   const [purchases, setPurchases] = useState<Purchase[]>([])
@@ -47,16 +47,21 @@ export function usePurchaseData() {
         throw new Error('User not authenticated');
       }
 
+      console.log('=== SAVE PURCHASE DEBUG ===');
+      console.log('Input purchase data:', purchase);
+      console.log('Payment method to validate:', purchase.payment_method);
+
       // Validate payment method before saving using constants
       const paymentMethod = purchase.payment_method;
-      console.log('Validating payment method:', paymentMethod);
-      console.log('Valid methods:', VALID_PAYMENT_METHODS);
       
-      if (!isValidPaymentMethod(paymentMethod)) {
+      if (!validatePaymentMethod(paymentMethod)) {
+        console.error('=== PAYMENT METHOD VALIDATION FAILED ===');
         console.error('Invalid payment method:', paymentMethod);
         console.error('Valid methods:', VALID_PAYMENT_METHODS);
         throw new Error(`Metode pembayaran tidak valid. Pilihan yang tersedia: ${VALID_PAYMENT_METHODS.join(', ')}`);
       }
+
+      console.log('Payment method validation passed');
 
       // Add user_id to purchase data
       const purchaseData = {
@@ -65,7 +70,7 @@ export function usePurchaseData() {
         payment_method: paymentMethod as PaymentMethod
       }
 
-      console.log('Saving purchase with validated data:', purchaseData);
+      console.log('Final purchase data to save:', purchaseData);
 
       const { data, error } = await supabase
         .from('purchases')
@@ -73,17 +78,24 @@ export function usePurchaseData() {
         .select()
 
       if (error) {
+        console.error('=== DATABASE ERROR ===');
         console.error('Database error details:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        
         if (error.code === '23514') {
+          // Check constraint violation - likely payment method issue
           throw new Error('Metode pembayaran tidak valid. Silakan pilih metode yang tersedia.');
         }
         throw error;
       }
       
+      console.log('Purchase saved successfully:', data);
       await loadPurchases() // Refresh data
       toast.success('Pembelian berhasil disimpan!')
       return data[0]
     } catch (error) {
+      console.error('=== SAVE PURCHASE ERROR ===');
       console.error('Error saving purchase:', error)
       const errorMessage = error instanceof Error ? error.message : 'Gagal menyimpan pembelian';
       toast.error(errorMessage)
@@ -114,7 +126,7 @@ export function usePurchaseData() {
   const updatePaymentMethod = async (id: string, paymentMethod: string) => {
     try {
       // Validate payment method
-      if (!isValidPaymentMethod(paymentMethod)) {
+      if (!validatePaymentMethod(paymentMethod)) {
         throw new Error('Metode pembayaran tidak valid');
       }
 
