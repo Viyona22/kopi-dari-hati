@@ -71,12 +71,18 @@ export default function Index() {
             "{cafeTagline}"
           </p>
           
-          <div className="flex justify-center mt-8">
+          <div className={`flex justify-center mt-8 ${isMobile ? 'flex-col gap-3' : 'gap-4'}`}>
             <Link 
               to="/reservation" 
               className={`bg-[rgba(227,167,107,0.24)] text-[#d4462d] font-bold ${isMobile ? 'px-4 py-3 text-sm' : 'px-6 py-2'} rounded-full hover:bg-[rgba(227,167,107,0.4)] transition-colors`}
             >
               RESERVASI MEJA
+            </Link>
+            <Link 
+              to="/menu" 
+              className={`bg-[#d4462d] text-white font-bold ${isMobile ? 'px-4 py-3 text-sm' : 'px-6 py-2'} rounded-full hover:bg-[#c03d2a] transition-colors`}
+            >
+              LIHAT MENU
             </Link>
           </div>
         </section>
