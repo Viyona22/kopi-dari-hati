@@ -33,6 +33,7 @@ export function useCafeSettings() {
     };
   }, []);
 
+  // Provide fallback values if settings are not accessible
   const paymentMethods = {
     qris: {
       enabled: getSetting('payment_qris_enabled', true),

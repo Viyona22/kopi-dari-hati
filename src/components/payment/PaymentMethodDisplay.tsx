@@ -32,8 +32,8 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
     description: 'Bayar saat pesanan diterima'
   });
 
-  // Add QRIS if enabled and has value
-  if (paymentMethods.qris.enabled && paymentMethods.qris.value) {
+  // Add QRIS if enabled and has value (with fallback)
+  if (paymentMethods?.qris?.enabled !== false && paymentMethods?.qris?.value) {
     console.log('Adding QRIS method:', paymentMethods.qris);
     availableMethods.push({
       id: 'qris',
@@ -43,8 +43,8 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
     });
   }
 
-  // Add Bank Transfer if enabled and has account details
-  if (paymentMethods.bank.enabled && paymentMethods.bank.account) {
+  // Add Bank Transfer if enabled and has account details (with fallback)
+  if (paymentMethods?.bank?.enabled !== false && paymentMethods?.bank?.account) {
     console.log('Adding Bank Transfer method:', paymentMethods.bank);
     availableMethods.push({
       id: 'bank_transfer',
@@ -54,10 +54,10 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
     });
   }
 
-  // Add E-wallet if enabled and has enabled options
-  if (paymentMethods.ewallet.enabled) {
+  // Add E-wallet if enabled and has enabled options (with fallback)
+  if (paymentMethods?.ewallet?.enabled) {
     console.log('E-wallet settings:', paymentMethods.ewallet);
-    const enabledWallets = Object.entries(paymentMethods.ewallet.options)
+    const enabledWallets = Object.entries(paymentMethods.ewallet.options || {})
       .filter(([_, enabled]) => enabled);
     
     console.log('Enabled wallets:', enabledWallets);
@@ -70,6 +70,24 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
         description: `${enabledWallets.map(([wallet, _]) => wallet.toUpperCase()).join(', ')}`
       });
     }
+  }
+
+  // If no methods are configured, show default methods
+  if (availableMethods.length === 1) { // Only COD
+    availableMethods.push(
+      {
+        id: 'qris',
+        title: 'QRIS',
+        icon: QrCode,
+        description: 'Scan QR Code untuk pembayaran'
+      },
+      {
+        id: 'bank_transfer',
+        title: 'Transfer Bank',
+        icon: Building,
+        description: 'Transfer ke rekening bank'
+      }
+    );
   }
 
   console.log('Available payment methods:', availableMethods);
@@ -115,14 +133,6 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
         })}
       </div>
 
-      {availableMethods.length === 0 && (
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-yellow-800 text-sm">
-            Belum ada metode pembayaran yang diaktifkan. Silakan hubungi admin.
-          </p>
-        </div>
-      )}
-
       {/* Payment Details */}
       {selectedMethod && selectedMethod !== 'cod' && (
         <Card>
@@ -132,7 +142,7 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
           <CardContent className="space-y-4">
             
             {/* QRIS Details */}
-            {selectedMethod === 'qris' && paymentMethods.qris.value && (
+            {selectedMethod === 'qris' && paymentMethods?.qris?.value && (
               <div className="space-y-3">
                 <p className="text-sm text-gray-600">
                   Scan QR Code di bawah atau gunakan link QRIS:
@@ -155,7 +165,7 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
             )}
 
             {/* Bank Transfer Details */}
-            {selectedMethod === 'bank_transfer' && paymentMethods.bank.account && (
+            {selectedMethod === 'bank_transfer' && paymentMethods?.bank?.account && (
               <div className="space-y-3">
                 <p className="text-sm text-gray-600">
                   Transfer ke rekening berikut:
@@ -199,10 +209,10 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
                   Metode e-wallet yang tersedia:
                 </p>
                 <div className="grid gap-2">
-                  {Object.entries(paymentMethods.ewallet.options)
+                  {Object.entries(paymentMethods?.ewallet?.options || {})
                     .filter(([_, enabled]) => enabled)
                     .map(([wallet, _]) => {
-                      const contactNumber = paymentMethods.ewallet.contacts?.[wallet] || '';
+                      const contactNumber = paymentMethods?.ewallet?.contacts?.[wallet] || '';
                       console.log(`E-wallet ${wallet}:`, { enabled: true, contact: contactNumber });
                       return (
                         <div key={wallet} className="p-3 bg-gray-50 rounded space-y-2">
@@ -233,11 +243,28 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
                       );
                     })}
                 </div>
-                {!Object.entries(paymentMethods.ewallet.options).some(([_, enabled]) => enabled) && (
+                {!Object.entries(paymentMethods?.ewallet?.options || {}).some(([_, enabled]) => enabled) && (
                   <p className="text-xs text-gray-500">
                     Belum ada e-wallet yang diaktifkan
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* Show default info if no specific payment method data */}
+            {selectedMethod === 'qris' && !paymentMethods?.qris?.value && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  Silakan scan QR Code QRIS yang disediakan oleh merchant untuk melakukan pembayaran.
+                </p>
+              </div>
+            )}
+
+            {selectedMethod === 'bank_transfer' && !paymentMethods?.bank?.account && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  Silakan transfer ke rekening yang akan diberikan oleh merchant setelah konfirmasi pesanan.
+                </p>
               </div>
             )}
           </CardContent>

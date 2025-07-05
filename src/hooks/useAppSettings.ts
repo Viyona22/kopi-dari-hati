@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -25,42 +26,25 @@ export function useAppSettings() {
 
       if (error) {
         console.error('Supabase error fetching settings:', error);
+        // If it's a permission error, just use empty settings array
+        if (error.code === '42501' || error.message.includes('row-level security')) {
+          console.log('User does not have permission to access app_settings, using defaults');
+          setSettings([]);
+          return;
+        }
         throw error;
       }
 
       setSettings(data || []);
-      
-      // Initialize default QRIS value if not exists
-      const hasQrisValue = data?.some(setting => setting.setting_key === 'payment_qris_value');
-      if (!hasQrisValue) {
-        console.log('Initializing default QRIS value');
-        await initializeDefaultQrisValue();
-      }
     } catch (error) {
       console.error('Error fetching settings:', error);
-      toast.error('Gagal memuat pengaturan');
+      // Don't show error toast for permission issues
+      if (!(error as any)?.code === '42501') {
+        toast.error('Gagal memuat pengaturan');
+      }
+      setSettings([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const initializeDefaultQrisValue = async () => {
-    try {
-      const { error } = await supabase
-        .from('app_settings')
-        .insert({
-          setting_key: 'payment_qris_value',
-          setting_value: 'https://qris.example.com/dummy-qr-code-kopi-dari-hati',
-          category: 'payment'
-        });
-
-      if (error) {
-        console.error('Error initializing QRIS value:', error);
-      } else {
-        console.log('Default QRIS value initialized');
-      }
-    } catch (error) {
-      console.error('Error initializing QRIS value:', error);
     }
   };
 
