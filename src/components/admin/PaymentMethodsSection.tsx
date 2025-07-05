@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { CreditCard, Save, QrCode, Building, Smartphone } from 'lucide-react';
+import { Save, QrCode, Building, Smartphone } from 'lucide-react';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { toast } from 'sonner';
 import QRCode from 'react-qr-code';
@@ -115,7 +115,7 @@ export function PaymentMethodsSection() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5" />
+          <Building className="h-5 w-5" />
           Manajemen Metode Pembayaran
         </CardTitle>
       </CardHeader>

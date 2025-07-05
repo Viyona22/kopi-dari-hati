@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { QrCode, Building, Smartphone, Copy, CreditCard } from 'lucide-react';
+import { QrCode, Building, Smartphone, Copy } from 'lucide-react';
 import { useCafeSettings } from '@/hooks/useCafeSettings';
 import { toast } from 'sonner';
 import QRCode from 'react-qr-code';
@@ -26,14 +26,6 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
   };
 
   const availableMethods = [];
-
-  // Add COD as always available
-  availableMethods.push({
-    id: PAYMENT_METHODS.COD,
-    title: PAYMENT_METHOD_LABELS[PAYMENT_METHODS.COD],
-    icon: CreditCard,
-    description: 'Bayar saat pesanan diterima'
-  });
 
   // Add QRIS if enabled and has value
   if (paymentMethods?.qris?.enabled && paymentMethods?.qris?.value) {
@@ -119,7 +111,7 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
       </div>
 
       {/* Payment Details */}
-      {selectedMethod && selectedMethod !== PAYMENT_METHODS.COD && (
+      {selectedMethod && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Detail Pembayaran</CardTitle>
@@ -245,16 +237,6 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange }: Payment
                 )}
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {selectedMethod === PAYMENT_METHODS.COD && (
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-gray-600">
-              Pembayaran akan dilakukan saat pesanan diterima. Pastikan Anda menyiapkan uang tunai sesuai dengan total pesanan.
-            </p>
           </CardContent>
         </Card>
       )}

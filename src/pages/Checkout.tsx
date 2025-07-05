@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Layout } from '../components/layout/Layout';
 import { useCart } from '@/context/CartContext';
@@ -73,7 +72,7 @@ export default function Checkout() {
         image: item.image
       })),
       total_amount: totalPrice,
-      payment_method: data.paymentMethod, // This should match PAYMENT_METHODS constants
+      payment_method: data.paymentMethod,
       status: 'Diproses' as const
     };
 
@@ -96,9 +95,6 @@ export default function Checkout() {
     const methods = [];
     
     console.log('Checking payment methods configuration:', paymentMethods);
-    
-    // Always add COD first
-    methods.push(PAYMENT_METHODS.COD);
     
     if (paymentMethods.qris.enabled && paymentMethods.qris.value) {
       console.log('Adding QRIS method');
