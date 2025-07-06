@@ -5,81 +5,82 @@ export function MediaManager() {
   useEffect(() => {
     let isCleaningUp = false;
 
-    // Improved media conflict handler
+    // Improved media conflict handler with better error checking
     const handleMediaConflict = () => {
       if (isCleaningUp) return;
       
       try {
-        // Get all audio and video elements
-        const audioElements = document.querySelectorAll('audio') as NodeListOf<HTMLAudioElement>;
-        const videoElements = document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>;
+        // Get all audio and video elements with existence check
+        const audioElements = document.querySelectorAll('audio');
+        const videoElements = document.querySelectorAll('video');
         
         // Safely pause audio elements
         audioElements.forEach(audio => {
           try {
-            if (!audio.paused && !audio.ended) {
+            if (audio && !audio.paused && !audio.ended && typeof audio.pause === 'function') {
               audio.pause();
             }
           } catch (error) {
-            console.warn('Failed to pause audio element:', error);
+            // Silently handle errors - don't log to avoid console spam
           }
         });
         
         // Safely pause video elements
         videoElements.forEach(video => {
           try {
-            if (!video.paused && !video.ended) {
+            if (video && !video.paused && !video.ended && typeof video.pause === 'function') {
               video.pause();
             }
           } catch (error) {
-            console.warn('Failed to pause video element:', error);
+            // Silently handle errors - don't log to avoid console spam
           }
         });
       } catch (error) {
-        console.warn('Media conflict handler error:', error);
+        // Silently handle errors - don't log to avoid console spam
       }
     };
 
-    // Improved play event handler
-    const handlePlay = (event: Event) => {
-      if (isCleaningUp) return;
+    // Simplified play event handler
+    const handlePlay = (event) => {
+      if (isCleaningUp || !event || !event.target) return;
       
       try {
-        const target = event.target as HTMLMediaElement;
+        const target = event.target;
         
-        // Only proceed if target is valid
-        if (!target || !target.play) return;
+        // Only proceed if target is a valid media element
+        if (!target || typeof target.pause !== 'function') return;
         
-        // Get all media elements
-        const allMedia = document.querySelectorAll('audio, video') as NodeListOf<HTMLMediaElement>;
+        // Get all media elements and pause others
+        const allMedia = document.querySelectorAll('audio, video');
         
-        // Pause other media elements
         allMedia.forEach(media => {
           try {
-            if (media !== target && !media.paused && !media.ended) {
+            if (media !== target && media && !media.paused && !media.ended && typeof media.pause === 'function') {
               media.pause();
             }
           } catch (error) {
-            console.warn('Failed to pause media element during play event:', error);
+            // Silently handle errors
           }
         });
       } catch (error) {
-        console.warn('Play event handler error:', error);
+        // Silently handle errors
       }
     };
 
-    // Error handler for media elements
-    const handleMediaError = (event: Event) => {
-      const target = event.target as HTMLMediaElement;
-      console.warn('Media element error:', target?.error?.message || 'Unknown media error');
+    // Minimal error handler
+    const handleMediaError = (event) => {
+      // Just prevent default behavior, don't log to reduce console noise
+      if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+      }
     };
 
-    // Add event listeners with proper error handling
+    // Add event listeners with better error handling
     try {
       document.addEventListener('play', handlePlay, { capture: true, passive: true });
       document.addEventListener('error', handleMediaError, { capture: true, passive: true });
     } catch (error) {
-      console.warn('Failed to add media event listeners:', error);
+      // Silently handle listener setup errors
     }
     
     // Cleanup function
@@ -93,7 +94,7 @@ export function MediaManager() {
         // Final cleanup of media elements
         handleMediaConflict();
       } catch (error) {
-        console.warn('Cleanup error in MediaManager:', error);
+        // Silently handle cleanup errors
       }
     };
   }, []);

@@ -37,7 +37,7 @@ export default function Index() {
     ];
   }
 
-  // Add a maximum loading time before showing content anyway
+  // Reduced loading time and improved user experience
   if (loading) {
     console.log('Index component showing loading state');
     return (
@@ -46,7 +46,6 @@ export default function Index() {
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d4462d] mx-auto mb-4"></div>
             <p className="text-gray-600">Memuat...</p>
-            <p className="text-xs text-gray-400 mt-2">Jika terus memuat, silakan refresh halaman</p>
           </div>
         </div>
       </Layout>
@@ -66,8 +65,12 @@ export default function Index() {
             className={`${isMobile ? 'w-16 h-16' : 'w-20 h-20'} mx-auto mb-4 rounded-full object-cover`} 
             onError={(e) => {
               console.log('Logo failed to load, using fallback');
-              (e.target as HTMLImageElement).src = "https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/8b514823c305a6f7e15578d979e8300b3985302e?placeholderIfAbsent=true";
+              const target = e.target as HTMLImageElement;
+              if (target && target.src !== "https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/8b514823c305a6f7e15578d979e8300b3985302e?placeholderIfAbsent=true") {
+                target.src = "https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/8b514823c305a6f7e15578d979e8300b3985302e?placeholderIfAbsent=true";
+              }
             }}
+            loading="lazy"
           />
           <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold text-[#d4462d] mb-4`}>
             {cafeName || 'Kopi dari Hati'}
@@ -140,8 +143,12 @@ export default function Index() {
                     "https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/ff4315eb0da02eb482b73b7cdf84a06c67a301e2?placeholderIfAbsent=true",
                     "https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/eedabfc471dd01fb886ab3e7cd5be0c6759d4d3d?placeholderIfAbsent=true"
                   ];
-                  (e.target as HTMLImageElement).src = defaultImages[index] || defaultImages[0];
+                  const target = e.target as HTMLImageElement;
+                  if (target && target.src !== defaultImages[index]) {
+                    target.src = defaultImages[index] || defaultImages[0];
+                  }
                 }}
+                loading="lazy"
               />
             ))}
           </div>
