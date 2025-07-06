@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthContext } from './AuthProvider';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -14,6 +15,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { signIn } = useAuthContext();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,11 +38,8 @@ export function LoginForm() {
         }
       } else if (data?.user) {
         console.log('Admin login successful for:', data.user.email);
-        
-        // Redirect admin directly to admin dashboard
-        setTimeout(() => {
-          window.location.href = '/admin';
-        }, 500);
+        // Navigate using React Router instead of window.location
+        navigate('/admin', { replace: true });
       }
     } catch (err) {
       console.error('Admin auth error:', err);

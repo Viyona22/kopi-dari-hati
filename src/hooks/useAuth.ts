@@ -13,14 +13,10 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
-  // Track if profile has been loaded to prevent redundant calls
-  const [profileLoaded, setProfileLoaded] = useState(false);
-
-  // Memoize profile loading with improved timeout and error handling
+  // Simplified profile loading without timeout complications
   const loadUserProfile = useCallback(async (userId: string) => {
-    // Prevent redundant calls if profile is already loaded or loading
-    if (profileLoading || profileLoaded) {
-      console.log('Profile loading already in progress or completed, skipping...');
+    if (profileLoading) {
+      console.log('Profile loading already in progress, skipping...');
       return;
     }
 
@@ -28,65 +24,34 @@ export function useAuth() {
     setProfileLoading(true);
     
     try {
-      // Shorter timeout and better error handling
-      const profilePromise = ProfileService.loadUserProfile(userId);
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Profile loading timeout')), 3000) // Reduced from 8000 to 3000
-      );
-
-      const profile = await Promise.race([profilePromise, timeoutPromise]) as UserProfile | null;
-      
+      const profile = await ProfileService.loadUserProfile(userId);
       console.log('Profile loaded:', profile);
       setUserProfile(profile);
-      setProfileLoaded(true);
-
-      // Auto-redirect admin users to admin dashboard after profile is loaded
-      if (profile && profile.role === 'admin' && window.location.pathname === '/login') {
-        setTimeout(() => {
-          window.location.href = '/admin';
-        }, 100);
-      }
     } catch (error) {
       console.error('Error loading user profile:', error);
-      // Continue without profile data but still mark as completed
       setUserProfile(null);
-      setProfileLoaded(true);
-      
-      // Don't show timeout errors to user, just log them
-      if (error instanceof Error && error.message === 'Profile loading timeout') {
-        console.log('Profile loading timed out, continuing without profile data');
-      }
     } finally {
       setProfileLoading(false);
     }
-  }, [profileLoading, profileLoaded]);
+  }, [profileLoading]);
 
-  // Handle auth state changes with better error handling
+  // Handle auth state changes
   const handleAuthStateChange = useCallback(async (event: string, session: Session | null) => {
     console.log('Auth state changed:', event, session?.user?.id);
     
     setSession(session);
     setUser(session?.user ?? null);
     
-    if (session?.user && !profileLoaded) {
-      // Reset profile loaded state for new user
-      if (userProfile?.id !== session.user.id) {
-        setProfileLoaded(false);
-        setUserProfile(null);
-      }
-      
-      // Load profile for authenticated user with a small delay
-      setTimeout(() => {
-        loadUserProfile(session.user.id);
-      }, 100);
-    } else if (!session?.user) {
+    if (session?.user) {
+      // Load profile for authenticated user
+      await loadUserProfile(session.user.id);
+    } else {
       // Clear profile data on sign out
       setUserProfile(null);
-      setProfileLoaded(false);
     }
     
     setLoading(false);
-  }, [loadUserProfile, profileLoaded, userProfile?.id]);
+  }, [loadUserProfile]);
 
   useEffect(() => {
     let mounted = true;
@@ -94,15 +59,10 @@ export function useAuth() {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
-    // Check for existing session with shorter timeout
+    // Check for existing session
     const checkSession = async () => {
       try {
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Session check timeout')), 2000) // Reduced from 5000 to 2000
-        );
-
-        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+        const { data: { session } } = await supabase.auth.getSession();
         
         if (!mounted) return;
         
@@ -111,15 +71,14 @@ export function useAuth() {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          loadUserProfile(session.user.id);
-        } else {
-          setLoading(false);
+          await loadUserProfile(session.user.id);
         }
+        
+        setLoading(false);
       } catch (error) {
         console.error('Session check failed:', error);
         if (!mounted) return;
         
-        // Continue without session if check fails
         setSession(null);
         setUser(null);
         setLoading(false);
@@ -135,8 +94,6 @@ export function useAuth() {
   }, []); // Empty dependency array to run only once
 
   const signIn = async (email: string, password: string) => {
-    // Reset profile state on new sign in
-    setProfileLoaded(false);
     return await AuthService.signIn(email, password);
   };
 
@@ -148,7 +105,6 @@ export function useAuth() {
     const { error } = await AuthService.signOut();
     if (!error) {
       setUserProfile(null);
-      setProfileLoaded(false);
     }
     return { error };
   };

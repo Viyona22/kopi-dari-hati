@@ -1,22 +1,44 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Layout } from '../components/layout/Layout';
 import { LoginForm } from '../components/auth/LoginForm';
 import { CustomerAuthForm } from '../components/auth/CustomerAuthForm';
 import { useAuthContext } from '../components/auth/AuthProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
-  const { userProfile } = useAuthContext();
+  const { userProfile, loading } = useAuthContext();
+  const navigate = useNavigate();
 
-  // If user is already logged in, redirect them
-  React.useEffect(() => {
-    if (userProfile) {
+  // Handle redirect for already logged in users
+  useEffect(() => {
+    if (!loading && userProfile) {
       console.log('User already logged in on login page:', userProfile);
-      window.location.href = userProfile.role === 'admin' ? '/admin' : '/history';
+      const redirectPath = userProfile.role === 'admin' ? '/admin' : '/history';
+      navigate(redirectPath, { replace: true });
     }
-  }, [userProfile]);
+  }, [userProfile, loading, navigate]);
+
+  // Show loading while checking auth state
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d4462d] mx-auto mb-4"></div>
+            <p className="text-gray-600">Memuat...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Don't render login form if user is already authenticated
+  if (userProfile) {
+    return null;
+  }
 
   return (
     <Layout>
