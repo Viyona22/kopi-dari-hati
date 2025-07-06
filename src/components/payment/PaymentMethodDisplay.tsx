@@ -29,6 +29,9 @@ export function PaymentMethodDisplay({ selectedMethod, onMethodChange, available
   // Use availableMethods prop if provided, otherwise determine from settings
   const methodsToShow = availableMethods || [];
 
+  console.log('PaymentMethodDisplay - Methods to show:', methodsToShow);
+  console.log('PaymentMethodDisplay - QRIS data:', paymentMethods?.qris);
+
   return (
     <div className="space-y-4">
       {/* Payment Method Selection */}

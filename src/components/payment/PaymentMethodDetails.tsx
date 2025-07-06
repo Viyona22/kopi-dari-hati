@@ -12,6 +12,9 @@ interface PaymentMethodDetailsProps {
 }
 
 export function PaymentMethodDetails({ selectedMethod, paymentMethods }: PaymentMethodDetailsProps) {
+  console.log('PaymentMethodDetails - Selected method:', selectedMethod);
+  console.log('PaymentMethodDetails - Payment methods:', paymentMethods);
+  
   if (!selectedMethod) return null;
 
   return (
@@ -22,21 +25,51 @@ export function PaymentMethodDetails({ selectedMethod, paymentMethods }: Payment
       <CardContent className="space-y-4">
         
         {/* QRIS Details */}
-        {selectedMethod === PAYMENT_METHODS.QRIS && paymentMethods?.qris?.value && (
-          <QRISDetails qrisValue={paymentMethods.qris.value} />
+        {selectedMethod === PAYMENT_METHODS.QRIS && (
+          <div>
+            {paymentMethods?.qris?.value ? (
+              <QRISDetails qrisValue={paymentMethods.qris.value} />
+            ) : (
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-yellow-800 text-sm">
+                  QRIS belum dikonfigurasi oleh admin. Silakan hubungi admin untuk mengaktifkan QRIS.
+                </p>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Bank Transfer Details */}
-        {selectedMethod === PAYMENT_METHODS.BANK_TRANSFER && paymentMethods?.bank?.account && (
-          <BankTransferDetails bankAccount={paymentMethods.bank.account} />
+        {selectedMethod === PAYMENT_METHODS.BANK_TRANSFER && (
+          <div>
+            {paymentMethods?.bank?.account ? (
+              <BankTransferDetails bankAccount={paymentMethods.bank.account} />
+            ) : (
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-yellow-800 text-sm">
+                  Transfer bank belum dikonfigurasi oleh admin. Silakan hubungi admin untuk mengaktifkan transfer bank.
+                </p>
+              </div>
+            )}
+          </div>
         )}
 
         {/* E-wallet Details */}
         {selectedMethod === PAYMENT_METHODS.EWALLET && (
-          <EWalletDetails 
-            ewalletOptions={paymentMethods?.ewallet?.options || {}}
-            ewalletContacts={paymentMethods?.ewallet?.contacts || {}}
-          />
+          <div>
+            {paymentMethods?.ewallet?.options && Object.values(paymentMethods.ewallet.options).some(enabled => enabled) ? (
+              <EWalletDetails 
+                ewalletOptions={paymentMethods.ewallet.options || {}}
+                ewalletContacts={paymentMethods.ewallet.contacts || {}}
+              />
+            ) : (
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-yellow-800 text-sm">
+                  E-wallet belum dikonfigurasi oleh admin. Silakan hubungi admin untuk mengaktifkan e-wallet.
+                </p>
+              </div>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
