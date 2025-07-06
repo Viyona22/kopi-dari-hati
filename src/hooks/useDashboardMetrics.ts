@@ -54,14 +54,20 @@ export function useDashboardMetrics() {
           .select('*', { count: 'exact' })
           .eq('date', new Date().toISOString().split('T')[0]);
 
-        // Get unique customers count
-        const { data: uniqueCustomers } = await supabase
-          .rpc('get_unique_customers_count');
+        // Get unique customers count by counting distinct customer_phone from purchases
+        const { data: uniqueCustomersData } = await supabase
+          .from('purchases')
+          .select('customer_phone')
+          .not('customer_phone', 'is', null);
+
+        const uniqueCustomersCount = uniqueCustomersData 
+          ? new Set(uniqueCustomersData.map(p => p.customer_phone)).size 
+          : 0;
 
         setMetrics(prev => ({
           ...prev,
           totalReservations: todayReservations || 0,
-          totalCustomers: uniqueCustomers || 0,
+          totalCustomers: uniqueCustomersCount,
         }));
 
         // Refresh materialized view periodically
