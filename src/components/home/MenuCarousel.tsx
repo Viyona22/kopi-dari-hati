@@ -7,7 +7,7 @@ import Autoplay from 'embla-carousel-autoplay';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 export function MenuCarousel() {
-  const { menuItems, loading, error } = useMenuData();
+  const { menuItems, loading } = useMenuData();
   const isMobile = useIsMobile();
   
   const plugin = React.useRef(
@@ -43,19 +43,6 @@ export function MenuCarousel() {
         <div className="text-center py-8 text-[#d4462d]">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d4462d] mx-auto mb-4"></div>
           <p>Memuat menu...</p>
-        </div>
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <section className="mb-16">
-        <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-[#d4462d] text-center mb-8`}>
-          MENU SPESIAL KAMI
-        </h2>
-        <div className="text-center py-8 text-red-500">
-          <p>Gagal memuat menu. Silakan coba lagi.</p>
         </div>
       </section>
     );
