@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,7 +34,7 @@ import { toast } from '@/hooks/use-toast';
 
 export function PurchaseTable() {
   const [searchTerm, setSearchTerm] = useState('');
-  const { purchases, loading, updatePurchaseStatus, deletePurchase, refreshData } = usePurchaseData();
+  const { purchases, loading, updatePurchaseStatus, refreshData } = usePurchaseData();
 
   const handleStatusChange = async (purchaseId: string, newStatus: 'Diproses' | 'Selesai' | 'Dibatalkan') => {
     try {
@@ -80,9 +81,34 @@ export function PurchaseTable() {
   const handleDelete = async (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus pembelian ini?')) {
       try {
-        await deletePurchase(id);
+        console.log('Attempting to delete purchase:', id);
+        
+        // Use the new safe delete function
+        const { data, error } = await supabase
+          .rpc('delete_purchase_safely', { purchase_id: id });
+
+        if (error) {
+          console.error('Error from delete function:', error);
+          throw error;
+        }
+
+        if (!data) {
+          throw new Error('Delete operation failed');
+        }
+
+        console.log('Purchase deleted successfully');
+        await refreshData();
+        toast({
+          title: "Pembelian Berhasil Dihapus",
+          description: "Data pembelian telah dihapus dari sistem",
+        });
       } catch (error) {
         console.error('Error deleting purchase:', error);
+        toast({
+          title: "Error",
+          description: "Gagal menghapus pembelian. Silakan coba lagi.",
+          variant: "destructive"
+        });
       }
     }
   };
@@ -141,6 +167,8 @@ export function PurchaseTable() {
         return 'Cash on Delivery';
       case 'qris':
         return 'QRIS';
+      case 'bank_transfer':
+        return 'Transfer Bank';
       case 'transfer':
         return 'Transfer Bank';
       default:

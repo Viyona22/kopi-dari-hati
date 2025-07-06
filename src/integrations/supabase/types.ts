@@ -455,6 +455,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      delete_purchase_safely: {
+        Args: { purchase_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _user_id: string

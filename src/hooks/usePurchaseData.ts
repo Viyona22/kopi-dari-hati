@@ -150,25 +150,6 @@ export function usePurchaseData() {
     }
   }
 
-  // Delete purchase
-  const deletePurchase = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('purchases')
-        .delete()
-        .eq('id', id)
-
-      if (error) throw error
-      
-      await loadPurchases() // Refresh data
-      toast.success('Pembelian berhasil dihapus!')
-    } catch (error) {
-      console.error('Error deleting purchase:', error)
-      toast.error('Gagal menghapus pembelian')
-      throw error
-    }
-  }
-
   useEffect(() => {
     if (user && userProfile) {
       loadPurchases()
@@ -181,7 +162,6 @@ export function usePurchaseData() {
     savePurchase,
     updatePurchaseStatus,
     updatePaymentMethod,
-    deletePurchase,
     refreshData: loadPurchases
   }
 }
