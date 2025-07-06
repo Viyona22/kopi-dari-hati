@@ -16,7 +16,7 @@ export function useAuth() {
   // Track if profile has been loaded to prevent redundant calls
   const [profileLoaded, setProfileLoaded] = useState(false);
 
-  // Memoize profile loading to prevent unnecessary calls with timeout handling
+  // Memoize profile loading with improved timeout and error handling
   const loadUserProfile = useCallback(async (userId: string) => {
     // Prevent redundant calls if profile is already loaded or loading
     if (profileLoading || profileLoaded) {
@@ -28,10 +28,10 @@ export function useAuth() {
     setProfileLoading(true);
     
     try {
-      // Add timeout to profile loading
+      // Shorter timeout and better error handling
       const profilePromise = ProfileService.loadUserProfile(userId);
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Profile loading timeout')), 8000)
+        setTimeout(() => reject(new Error('Profile loading timeout')), 3000) // Reduced from 8000 to 3000
       );
 
       const profile = await Promise.race([profilePromise, timeoutPromise]) as UserProfile | null;
@@ -41,19 +41,20 @@ export function useAuth() {
       setProfileLoaded(true);
     } catch (error) {
       console.error('Error loading user profile:', error);
-      // Don't fail completely, just log the error and continue
-      // User can still use the app without profile data
+      // Continue without profile data but still mark as completed
+      setUserProfile(null);
+      setProfileLoaded(true);
+      
+      // Don't show timeout errors to user, just log them
       if (error instanceof Error && error.message === 'Profile loading timeout') {
         console.log('Profile loading timed out, continuing without profile data');
       }
-      setUserProfile(null);
-      setProfileLoaded(true); // Mark as loaded even if failed to prevent infinite retries
     } finally {
       setProfileLoading(false);
     }
   }, [profileLoading, profileLoaded]);
 
-  // Handle auth state changes with debouncing
+  // Handle auth state changes with better error handling
   const handleAuthStateChange = useCallback(async (event: string, session: Session | null) => {
     console.log('Auth state changed:', event, session?.user?.id);
     
@@ -86,12 +87,12 @@ export function useAuth() {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
-    // Check for existing session only once with timeout
+    // Check for existing session with shorter timeout
     const checkSession = async () => {
       try {
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Session check timeout')), 5000)
+          setTimeout(() => reject(new Error('Session check timeout')), 2000) // Reduced from 5000 to 2000
         );
 
         const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;

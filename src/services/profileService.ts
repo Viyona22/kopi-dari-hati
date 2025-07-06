@@ -7,12 +7,22 @@ export class ProfileService {
     try {
       console.log('Loading profile for user:', userId);
       
-      // First, get the profile data
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, email, full_name')
-        .eq('id', userId)
-        .maybeSingle();
+      // Add timeout wrapper to all database calls
+      const executeWithTimeout = async <T>(promise: Promise<T>, timeoutMs: number = 2000): Promise<T> => {
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Database timeout')), timeoutMs)
+        );
+        return Promise.race([promise, timeoutPromise]);
+      };
+      
+      // First, get the profile data with timeout
+      const { data: profileData, error: profileError } = await executeWithTimeout(
+        supabase
+          .from('profiles')
+          .select('id, email, full_name')
+          .eq('id', userId)
+          .maybeSingle()
+      );
 
       if (profileError) {
         console.error('Error loading profile:', profileError);
@@ -24,12 +34,14 @@ export class ProfileService {
         return null;
       }
 
-      // Then, get the user role
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
+      // Then, get the user role with timeout
+      const { data: roleData, error: roleError } = await executeWithTimeout(
+        supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle()
+      );
 
       if (roleError) {
         console.error('Error loading user role:', roleError);

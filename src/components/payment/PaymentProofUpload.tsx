@@ -26,10 +26,10 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
   // Check if purchase exists and belongs to user
   useEffect(() => {
     const checkPurchase = async () => {
-      // If no user, don't proceed
+      // If no user, don't proceed but still show the form
       if (!user?.id) {
         console.log('No authenticated user found');
-        setPurchaseExists(false);
+        setPurchaseExists(true); // Allow form to show, validation will happen during upload
         setLoadingPurchase(false);
         return;
       }
@@ -44,21 +44,23 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
       try {
         console.log('Checking purchase existence for:', { purchaseId, userId: user.id });
         
-        // Use a more robust query with timeout
-        const { data, error } = await Promise.race([
-          supabase
-            .from('purchases')
-            .select('id, user_id, payment_status')
-            .eq('id', purchaseId)
-            .limit(1),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Request timeout')), 10000)
-          )
-        ]) as any;
+        // Use a more robust query with shorter timeout
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout')), 1500) // Reduced timeout
+        );
+
+        const purchasePromise = supabase
+          .from('purchases')
+          .select('id, user_id, payment_status')
+          .eq('id', purchaseId)
+          .limit(1);
+
+        const { data, error } = await Promise.race([purchasePromise, timeoutPromise]) as any;
 
         if (error) {
           console.error('Purchase check error:', error);
-          setPurchaseExists(false);
+          // Show the form anyway, validation will happen during upload
+          setPurchaseExists(true);
           setLoadingPurchase(false);
           return;
         }
@@ -73,13 +75,8 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
       } catch (error) {
         console.error('Purchase validation error:', error);
         // If there's a connection error, still show the upload form
-        // The validation will happen again during upload
         setPurchaseExists(true);
-        toast({
-          title: "Peringatan",
-          description: "Tidak dapat memverifikasi pesanan. Upload masih dapat dilakukan.",
-          variant: "destructive"
-        });
+        console.log('Connection error, showing upload form anyway');
       } finally {
         setLoadingPurchase(false);
       }
@@ -128,12 +125,21 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
       console.log('Purchase ID:', purchaseId);
       console.log('File:', selectedFile.name, 'Size:', selectedFile.size);
 
-      // Re-validate purchase before upload
-      const { data: purchaseData, error: purchaseError } = await supabase
+      // Re-validate purchase before upload with shorter timeout
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Validation timeout')), 2000)
+      );
+
+      const purchasePromise = supabase
         .from('purchases')
         .select('id, user_id, payment_status')
         .eq('id', purchaseId)
         .limit(1);
+
+      const { data: purchaseData, error: purchaseError } = await Promise.race([
+        purchasePromise, 
+        timeoutPromise
+      ]) as any;
 
       if (purchaseError) {
         console.error('Purchase validation error:', purchaseError);
@@ -234,7 +240,7 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
     setUploading(false);
   };
 
-  // Show loading state while checking purchase
+  // Show minimal loading state
   if (loadingPurchase) {
     return (
       <Card>
@@ -262,7 +268,7 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
     );
   }
 
-  // Show error if purchase doesn't exist (only if we're sure it doesn't exist)
+  // Show error only if we're absolutely sure purchase doesn't exist
   if (purchaseExists === false && !loadingPurchase) {
     return (
       <Card>
