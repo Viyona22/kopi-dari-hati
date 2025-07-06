@@ -8,7 +8,7 @@ export class ProfileService {
       console.log('Loading profile for user:', userId);
       
       // Add timeout wrapper to all database calls
-      const executeWithTimeout = async <T>(promise: Promise<T>, timeoutMs: number = 2000): Promise<T> => {
+      const executeWithTimeout = async <T>(promise: Promise<T>, timeoutMs: number = 1500): Promise<T> => {
         const timeoutPromise = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Database timeout')), timeoutMs)
         );
@@ -21,7 +21,8 @@ export class ProfileService {
           .from('profiles')
           .select('id, email, full_name')
           .eq('id', userId)
-          .maybeSingle()
+          .maybeSingle(),
+        1500
       );
 
       if (profileError) {
@@ -40,7 +41,8 @@ export class ProfileService {
           .from('user_roles')
           .select('role')
           .eq('user_id', userId)
-          .maybeSingle()
+          .maybeSingle(),
+        1500
       );
 
       if (roleError) {
