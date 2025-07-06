@@ -37,10 +37,10 @@ export function LoginForm() {
       } else if (data?.user) {
         console.log('Admin login successful for:', data.user.email);
         
-        // Redirect will be handled by useAuth
+        // Redirect admin directly to admin dashboard
         setTimeout(() => {
           window.location.href = '/admin';
-        }, 1000);
+        }, 500);
       }
     } catch (err) {
       console.error('Admin auth error:', err);

@@ -16,7 +16,7 @@ export class ProfileService {
       };
       
       // First, get the profile data with timeout
-      const { data: profileData, error: profileError } = await executeWithTimeout(
+      const profileResult = await executeWithTimeout(
         supabase
           .from('profiles')
           .select('id, email, full_name')
@@ -25,18 +25,18 @@ export class ProfileService {
         1500
       );
 
-      if (profileError) {
-        console.error('Error loading profile:', profileError);
+      if (profileResult.error) {
+        console.error('Error loading profile:', profileResult.error);
         return null;
       }
 
-      if (!profileData) {
+      if (!profileResult.data) {
         console.log('No profile found for user:', userId);
         return null;
       }
 
       // Then, get the user role with timeout
-      const { data: roleData, error: roleError } = await executeWithTimeout(
+      const roleResult = await executeWithTimeout(
         supabase
           .from('user_roles')
           .select('role')
@@ -45,21 +45,21 @@ export class ProfileService {
         1500
       );
 
-      if (roleError) {
-        console.error('Error loading user role:', roleError);
+      if (roleResult.error) {
+        console.error('Error loading user role:', roleResult.error);
         return null;
       }
 
-      if (!roleData) {
+      if (!roleResult.data) {
         console.log('No role found for user:', userId);
         return null;
       }
 
       const userProfile: UserProfile = {
-        id: profileData.id,
-        email: profileData.email || '',
-        full_name: profileData.full_name || profileData.email || '',
-        role: roleData.role as 'admin' | 'customer'
+        id: profileResult.data.id,
+        email: profileResult.data.email || '',
+        full_name: profileResult.data.full_name || profileResult.data.email || '',
+        role: roleResult.data.role as 'admin' | 'customer'
       };
       
       console.log('User profile loaded from database:', userProfile);

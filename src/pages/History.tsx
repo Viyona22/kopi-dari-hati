@@ -54,14 +54,11 @@ function HistoryContent() {
               Riwayat Aktivitas
             </h1>
             <p className="text-gray-600">
-              {userProfile?.role === 'admin' 
-                ? 'Pantau semua aktivitas pelanggan' 
-                : 'Pantau semua aktivitas Anda dalam satu tempat'
-              }
+              Pantau semua aktivitas Anda dalam satu tempat
             </p>
             {userProfile && (
               <p className="text-sm text-[#d4462d] mt-2">
-                Selamat datang, {userProfile.full_name} ({userProfile.role})
+                Selamat datang, {userProfile.full_name}
               </p>
             )}
           </div>
@@ -128,13 +125,11 @@ function HistoryContent() {
                 </h3>
                 <p className="text-gray-600">
                   {activities.length === 0 
-                    ? userProfile?.role === 'admin' 
-                      ? "Belum ada pemesanan atau reservasi dari semua pelanggan."
-                      : "Belum ada pemesanan atau reservasi yang Anda buat."
+                    ? "Belum ada pemesanan atau reservasi yang Anda buat."
                     : "Tidak ada aktivitas yang sesuai dengan filter yang dipilih."
                   }
                 </p>
-                {userProfile?.role === 'customer' && activities.length === 0 && (
+                {activities.length === 0 && (
                   <p className="text-sm text-gray-500 mt-2">
                     Mulai dengan membuat pemesanan atau reservasi pertama Anda!
                   </p>
@@ -185,7 +180,7 @@ function HistoryContent() {
 
 export default function History() {
   return (
-    <ProtectedRoute requireAuth={true}>
+    <ProtectedRoute requireAuth={true} requireCustomer={true}>
       <HistoryContent />
     </ProtectedRoute>
   );

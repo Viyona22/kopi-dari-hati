@@ -7,6 +7,7 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAuth?: boolean;
   requireAdmin?: boolean;
+  requireCustomer?: boolean;
   redirectTo?: string;
 }
 
@@ -14,6 +15,7 @@ export function ProtectedRoute({
   children, 
   requireAuth = true, 
   requireAdmin = false,
+  requireCustomer = false,
   redirectTo = '/login'
 }: ProtectedRouteProps) {
   const { user, userProfile, loading } = useAuthContext();
@@ -31,7 +33,11 @@ export function ProtectedRoute({
   }
 
   if (requireAdmin && userProfile?.role !== 'admin') {
-    return <Navigate to="/history" replace />;
+    return <Navigate to="/login" replace />;
+  }
+
+  if (requireCustomer && userProfile?.role !== 'customer') {
+    return <Navigate to="/admin" replace />;
   }
 
   return <>{children}</>;

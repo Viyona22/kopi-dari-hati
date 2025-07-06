@@ -39,6 +39,13 @@ export function useAuth() {
       console.log('Profile loaded:', profile);
       setUserProfile(profile);
       setProfileLoaded(true);
+
+      // Auto-redirect admin users to admin dashboard after profile is loaded
+      if (profile && profile.role === 'admin' && window.location.pathname === '/login') {
+        setTimeout(() => {
+          window.location.href = '/admin';
+        }, 100);
+      }
     } catch (error) {
       console.error('Error loading user profile:', error);
       // Continue without profile data but still mark as completed
