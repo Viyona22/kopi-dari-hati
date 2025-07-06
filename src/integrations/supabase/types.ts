@@ -36,6 +36,36 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          operation: string
+          table_name: string
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          operation: string
+          table_name: string
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          operation?: string
+          table_name?: string
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string | null
@@ -394,15 +424,47 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      dashboard_metrics: {
+        Row: {
+          month_orders: number | null
+          month_revenue: number | null
+          period: string | null
+          today_orders: number | null
+          today_revenue: number | null
+          week_orders: number | null
+          week_revenue: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      calculate_menu_analytics: {
+        Args: { item_id: string }
+        Returns: {
+          total_favorites: number
+          total_reviews: number
+          average_rating: number
+          total_orders: number
+        }[]
+      }
+      check_reservation_availability: {
+        Args: {
+          reservation_date: string
+          reservation_time: string
+          guest_count: number
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      refresh_dashboard_metrics: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {

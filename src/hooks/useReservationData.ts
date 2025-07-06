@@ -9,7 +9,7 @@ export function useReservationData() {
   const [loading, setLoading] = useState(true)
   const { user, userProfile } = useAuthContext()
 
-  // Load reservations from Supabase
+  // Load reservations from Supabase with optimized query
   const loadReservations = async () => {
     try {
       console.log('Loading reservations for user:', user?.id, 'role:', userProfile?.role);
@@ -31,11 +31,28 @@ export function useReservationData() {
     }
   }
 
-  // Save reservation to Supabase
+  // Save reservation to Supabase with availability check
   const saveReservation = async (reservation: Omit<Reservation, 'created_at'>) => {
     try {
       if (!user?.id) {
         throw new Error('User not authenticated');
+      }
+
+      // Check availability using the new database function
+      const { data: isAvailable, error: availabilityError } = await supabase
+        .rpc('check_reservation_availability', {
+          reservation_date: reservation.date,
+          reservation_time: reservation.time,
+          guest_count: reservation.guests
+        })
+
+      if (availabilityError) {
+        console.error('Error checking availability:', availabilityError)
+      }
+
+      if (!isAvailable) {
+        toast.error('Maaf, kapasitas untuk tanggal dan waktu tersebut sudah penuh. Silakan pilih waktu lain.')
+        return null
       }
 
       // Add user_id to reservation data

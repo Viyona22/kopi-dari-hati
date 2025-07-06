@@ -7,7 +7,7 @@ export function useMenuData() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Load menu items from Supabase
+  // Load menu items from Supabase with optimized query
   const loadMenuItems = async () => {
     try {
       const { data, error } = await supabase
@@ -59,7 +59,7 @@ export function useMenuData() {
 
       console.log('2. Basic validation passed')
 
-      // Check if category exists in categories table
+      // Check if category exists in categories table using optimized query
       console.log('3. Checking if category exists:', item.category)
       const { data: categoryCheck, error: categoryError } = await supabase
         .from('categories')

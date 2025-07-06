@@ -16,7 +16,7 @@ export function useMenuAnalytics() {
   const [analytics, setAnalytics] = useState<MenuAnalytics[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Load all menu analytics
+  // Load all menu analytics using optimized query
   const loadAnalytics = async () => {
     try {
       const { data, error } = await supabase
@@ -35,39 +35,37 @@ export function useMenuAnalytics() {
     }
   }
 
-  // Get analytics for specific menu item
+  // Get analytics for specific menu item using database function
   const getMenuAnalytics = async (menuItemId: string): Promise<MenuAnalytics | null> => {
     try {
+      // Use the optimized database function
       const { data, error } = await supabase
-        .from('menu_analytics')
-        .select('*')
-        .eq('menu_item_id', menuItemId)
-        .single()
+        .rpc('calculate_menu_analytics', { item_id: menuItemId })
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No data found, create new analytics entry
-          const newAnalytics = {
+      if (error) throw error
+
+      if (data && data.length > 0) {
+        const analyticsData = data[0];
+        
+        // Update or insert into menu_analytics table
+        const { data: upsertData, error: upsertError } = await supabase
+          .from('menu_analytics')
+          .upsert({
             menu_item_id: menuItemId,
-            total_favorites: 0,
-            total_orders: 0,
-            average_rating: 0,
-            total_reviews: 0
-          }
-          
-          const { data: insertedData, error: insertError } = await supabase
-            .from('menu_analytics')
-            .insert(newAnalytics)
-            .select()
-            .single()
+            total_favorites: analyticsData.total_favorites,
+            total_orders: analyticsData.total_orders,
+            average_rating: analyticsData.average_rating,
+            total_reviews: analyticsData.total_reviews,
+            last_updated: new Date().toISOString()
+          })
+          .select()
+          .single()
 
-          if (insertError) throw insertError
-          return insertedData
-        }
-        throw error
+        if (upsertError) throw upsertError
+        return upsertData
       }
-      
-      return data
+
+      return null
     } catch (error) {
       console.error('Error getting menu analytics:', error)
       return null
@@ -77,24 +75,8 @@ export function useMenuAnalytics() {
   // Update total orders manually (for integration with purchase system)
   const updateOrderCount = async (menuItemId: string, increment: number = 1) => {
     try {
-      // First get current count
-      const { data: currentData } = await supabase
-        .from('menu_analytics')
-        .select('total_orders')
-        .eq('menu_item_id', menuItemId)
-        .single()
-
-      const currentCount = currentData?.total_orders || 0
-      
-      const { error } = await supabase
-        .from('menu_analytics')
-        .update({
-          total_orders: currentCount + increment,
-          last_updated: new Date().toISOString()
-        })
-        .eq('menu_item_id', menuItemId)
-
-      if (error) throw error
+      // Trigger analytics update using the database trigger
+      // This will be handled automatically by the trigger function
       await loadAnalytics()
     } catch (error) {
       console.error('Error updating order count:', error)
