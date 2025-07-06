@@ -56,21 +56,33 @@ export function useActivityHistory() {
       console.log('Raw data loaded - Purchases:', purchases?.length || 0, 'Reservations:', reservations?.length || 0);
 
       // Transform purchases to activities
-      const purchaseActivities: Activity[] = (purchases || []).map(purchase => ({
-        id: purchase.id,
-        type: 'pemesanan' as const,
-        date: purchase.created_at || new Date().toISOString(),
-        status: purchase.status,
-        totalAmount: purchase.total_amount,
-        customerName: purchase.customer_name,
-        details: {
-          phone: purchase.customer_phone,
-          address: purchase.customer_address,
-          paymentMethod: purchase.payment_method,
-          orderItems: purchase.order_items
-        },
-        created_at: purchase.created_at || new Date().toISOString()
-      }));
+      const purchaseActivities: Activity[] = (purchases || []).map(purchase => {
+        // Extract date and time from created_at
+        const createdAt = new Date(purchase.created_at || new Date().toISOString());
+        const dateString = createdAt.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const timeString = createdAt.toLocaleTimeString('id-ID', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        }); // HH:MM format
+
+        return {
+          id: purchase.id,
+          type: 'pemesanan' as const,
+          date: dateString,
+          time: timeString, // Add time for purchases
+          status: purchase.status,
+          totalAmount: purchase.total_amount,
+          customerName: purchase.customer_name,
+          details: {
+            phone: purchase.customer_phone,
+            address: purchase.customer_address,
+            paymentMethod: purchase.payment_method,
+            orderItems: purchase.order_items
+          },
+          created_at: purchase.created_at || new Date().toISOString()
+        };
+      });
 
       // Transform reservations to activities
       const reservationActivities: Activity[] = (reservations || []).map(reservation => ({

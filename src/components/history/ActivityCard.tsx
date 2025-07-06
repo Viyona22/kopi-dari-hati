@@ -85,7 +85,12 @@ export function ActivityCard({ activity }: ActivityCardProps) {
           {activity.time && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Clock className="h-4 w-4" />
-              <span>{activity.time}</span>
+              <span>
+                {activity.type === 'pemesanan' 
+                  ? `Dipesan pada ${activity.time}` 
+                  : activity.time
+                }
+              </span>
             </div>
           )}
         </div>
