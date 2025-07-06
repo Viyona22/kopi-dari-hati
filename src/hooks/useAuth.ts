@@ -16,7 +16,7 @@ export function useAuth() {
   // Track if profile has been loaded to prevent redundant calls
   const [profileLoaded, setProfileLoaded] = useState(false);
 
-  // Memoize profile loading to prevent unnecessary calls
+  // Memoize profile loading to prevent unnecessary calls with timeout handling
   const loadUserProfile = useCallback(async (userId: string) => {
     // Prevent redundant calls if profile is already loaded or loading
     if (profileLoading || profileLoaded) {
@@ -28,12 +28,26 @@ export function useAuth() {
     setProfileLoading(true);
     
     try {
-      const profile = await ProfileService.loadUserProfile(userId);
+      // Add timeout to profile loading
+      const profilePromise = ProfileService.loadUserProfile(userId);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Profile loading timeout')), 8000)
+      );
+
+      const profile = await Promise.race([profilePromise, timeoutPromise]) as UserProfile | null;
+      
       console.log('Profile loaded:', profile);
       setUserProfile(profile);
       setProfileLoaded(true);
     } catch (error) {
       console.error('Error loading user profile:', error);
+      // Don't fail completely, just log the error and continue
+      // User can still use the app without profile data
+      if (error instanceof Error && error.message === 'Profile loading timeout') {
+        console.log('Profile loading timed out, continuing without profile data');
+      }
+      setUserProfile(null);
+      setProfileLoaded(true); // Mark as loaded even if failed to prevent infinite retries
     } finally {
       setProfileLoading(false);
     }
@@ -53,7 +67,7 @@ export function useAuth() {
         setUserProfile(null);
       }
       
-      // Load profile for authenticated user
+      // Load profile for authenticated user with a small delay
       setTimeout(() => {
         loadUserProfile(session.user.id);
       }, 100);
@@ -72,20 +86,39 @@ export function useAuth() {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
-    // Check for existing session only once
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      
-      console.log('Initial session check:', session?.user?.id);
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        loadUserProfile(session.user.id);
-      } else {
+    // Check for existing session only once with timeout
+    const checkSession = async () => {
+      try {
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Session check timeout')), 5000)
+        );
+
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+        
+        if (!mounted) return;
+        
+        console.log('Initial session check:', session?.user?.id);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          loadUserProfile(session.user.id);
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Session check failed:', error);
+        if (!mounted) return;
+        
+        // Continue without session if check fails
+        setSession(null);
+        setUser(null);
         setLoading(false);
       }
-    });
+    };
+
+    checkSession();
 
     return () => {
       mounted = false;

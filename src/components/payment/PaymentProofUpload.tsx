@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, Image, CheckCircle } from 'lucide-react';
+import { Upload, Image, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/hooks/use-toast';
 import { useAuthContext } from '@/components/auth/AuthProvider';
@@ -20,30 +20,51 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
   const [purchaseExists, setPurchaseExists] = useState<boolean | null>(null);
+  const [loadingPurchase, setLoadingPurchase] = useState(true);
   const { user } = useAuthContext();
 
   // Check if purchase exists and belongs to user
   useEffect(() => {
     const checkPurchase = async () => {
-      if (!user?.id || !purchaseId) return;
+      // If no user, don't proceed
+      if (!user?.id) {
+        console.log('No authenticated user found');
+        setPurchaseExists(false);
+        setLoadingPurchase(false);
+        return;
+      }
+
+      if (!purchaseId) {
+        console.log('No purchase ID provided');
+        setPurchaseExists(false);
+        setLoadingPurchase(false);
+        return;
+      }
 
       try {
         console.log('Checking purchase existence for:', { purchaseId, userId: user.id });
         
-        const { data, error } = await supabase
-          .from('purchases')
-          .select('id, user_id, payment_status')
-          .eq('id', purchaseId)
-          .single();
+        // Use a more robust query with timeout
+        const { data, error } = await Promise.race([
+          supabase
+            .from('purchases')
+            .select('id, user_id, payment_status')
+            .eq('id', purchaseId)
+            .limit(1),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout')), 10000)
+          )
+        ]) as any;
 
         if (error) {
           console.error('Purchase check error:', error);
           setPurchaseExists(false);
+          setLoadingPurchase(false);
           return;
         }
 
-        if (data && data.user_id === user.id) {
-          console.log('Purchase validation successful:', data);
+        if (data && data.length > 0 && data[0].user_id === user.id) {
+          console.log('Purchase validation successful:', data[0]);
           setPurchaseExists(true);
         } else {
           console.log('Purchase not found or access denied');
@@ -51,7 +72,16 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
         }
       } catch (error) {
         console.error('Purchase validation error:', error);
-        setPurchaseExists(false);
+        // If there's a connection error, still show the upload form
+        // The validation will happen again during upload
+        setPurchaseExists(true);
+        toast({
+          title: "Peringatan",
+          description: "Tidak dapat memverifikasi pesanan. Upload masih dapat dilakukan.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingPurchase(false);
       }
     };
 
@@ -61,6 +91,16 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Check file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "Ukuran file terlalu besar. Maksimal 5MB.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -80,15 +120,6 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
       return;
     }
 
-    if (purchaseExists === false) {
-      toast({
-        title: "Error",
-        description: "Purchase tidak ditemukan atau tidak dapat diakses",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setUploading(true);
 
     try {
@@ -96,6 +127,34 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
       console.log('User ID:', user.id);
       console.log('Purchase ID:', purchaseId);
       console.log('File:', selectedFile.name, 'Size:', selectedFile.size);
+
+      // Re-validate purchase before upload
+      const { data: purchaseData, error: purchaseError } = await supabase
+        .from('purchases')
+        .select('id, user_id, payment_status')
+        .eq('id', purchaseId)
+        .limit(1);
+
+      if (purchaseError) {
+        console.error('Purchase validation error:', purchaseError);
+        throw new Error('Purchase tidak ditemukan atau tidak dapat diakses');
+      }
+
+      if (!purchaseData || purchaseData.length === 0) {
+        throw new Error('Purchase tidak ditemukan');
+      }
+
+      const purchase = purchaseData[0];
+      
+      if (purchase.user_id !== user.id) {
+        throw new Error('Anda tidak memiliki akses ke purchase ini');
+      }
+
+      if (purchase.payment_status !== 'pending') {
+        throw new Error('Upload bukti pembayaran hanya dapat dilakukan untuk pesanan dengan status pending');
+      }
+
+      console.log('Purchase validation successful:', purchase);
 
       // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop();
@@ -175,11 +234,13 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
     setUploading(false);
   };
 
-  if (purchaseExists === null) {
+  // Show loading state while checking purchase
+  if (loadingPurchase) {
     return (
       <Card>
         <CardContent className="p-6">
           <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d4462d] mx-auto mb-4"></div>
             <p className="text-gray-600">Memvalidasi pesanan...</p>
           </div>
         </CardContent>
@@ -187,12 +248,29 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
     );
   }
 
-  if (purchaseExists === false) {
+  // Show error if no user
+  if (!user) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-amber-600">
+            <AlertCircle className="w-12 h-12 mx-auto mb-2" />
+            <p>Silakan login terlebih dahulu untuk mengunggah bukti pembayaran.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error if purchase doesn't exist (only if we're sure it doesn't exist)
+  if (purchaseExists === false && !loadingPurchase) {
     return (
       <Card>
         <CardContent className="p-6">
           <div className="text-center text-red-600">
+            <AlertCircle className="w-12 h-12 mx-auto mb-2" />
             <p>Pesanan tidak ditemukan atau Anda tidak memiliki akses.</p>
+            <p className="text-sm text-gray-500 mt-2">Purchase ID: {purchaseId}</p>
           </div>
         </CardContent>
       </Card>
