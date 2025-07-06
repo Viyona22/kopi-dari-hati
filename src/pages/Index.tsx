@@ -35,21 +35,6 @@ export default function Index() {
     ];
   }
 
-  // Show loading only for a brief moment
-  if (loading) {
-    console.log('Index component showing loading state');
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d4462d] mx-auto mb-4"></div>
-            <p className="text-gray-600">Memuat...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
   console.log('Index component rendering main content');
 
   return (
@@ -61,6 +46,7 @@ export default function Index() {
             src={logoSrc} 
             alt="Logo" 
             className={`${isMobile ? 'w-16 h-16' : 'w-20 h-20'} mx-auto mb-4 rounded-full object-cover`} 
+            loading="lazy"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               if (target && target.src !== "https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/8b514823c305a6f7e15578d979e8300b3985302e?placeholderIfAbsent=true") {
@@ -133,6 +119,7 @@ export default function Index() {
                 src={image} 
                 alt={`Suasana ${index + 1}`} 
                 className={`${isMobile ? 'w-full max-w-[280px] h-[200px]' : 'w-[200px] h-[240px]'} object-cover rounded-lg shadow-md`} 
+                loading="lazy"
                 onError={(e) => {
                   const defaultImages = [
                     "https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/ff4315eb0da02eb482b73b7cdf84a06c67a301e2?placeholderIfAbsent=true",

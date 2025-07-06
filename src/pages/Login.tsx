@@ -21,14 +21,14 @@ export default function Login() {
     }
   }, [userProfile, loading, navigate]);
 
-  // Show loading while checking auth state
+  // Show simple loading for faster response
   if (loading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d4462d] mx-auto mb-4"></div>
-            <p className="text-gray-600">Memuat...</p>
+          <div className="text-center py-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d4462d] mx-auto mb-2"></div>
+            <p className="text-gray-600 text-sm">Memuat...</p>
           </div>
         </div>
       </Layout>

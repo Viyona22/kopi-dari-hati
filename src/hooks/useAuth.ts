@@ -37,7 +37,12 @@ export function useAuth() {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        await loadUserProfile(session.user.id);
+        // Use setTimeout to prevent hooks error
+        setTimeout(() => {
+          if (mounted) {
+            loadUserProfile(session.user.id);
+          }
+        }, 0);
       } else {
         setUserProfile(null);
       }
@@ -57,7 +62,12 @@ export function useAuth() {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await loadUserProfile(session.user.id);
+          // Use setTimeout to prevent hooks error
+          setTimeout(() => {
+            if (mounted) {
+              loadUserProfile(session.user.id);
+            }
+          }, 0);
         }
         
         setLoading(false);
