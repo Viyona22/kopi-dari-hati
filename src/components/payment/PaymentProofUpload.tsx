@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,44 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
+  const [purchaseExists, setPurchaseExists] = useState<boolean | null>(null);
   const { user } = useAuthContext();
+
+  // Check if purchase exists and belongs to user
+  useEffect(() => {
+    const checkPurchase = async () => {
+      if (!user?.id || !purchaseId) return;
+
+      try {
+        console.log('Checking purchase existence for:', { purchaseId, userId: user.id });
+        
+        const { data, error } = await supabase
+          .from('purchases')
+          .select('id, user_id, payment_status')
+          .eq('id', purchaseId)
+          .single();
+
+        if (error) {
+          console.error('Purchase check error:', error);
+          setPurchaseExists(false);
+          return;
+        }
+
+        if (data && data.user_id === user.id) {
+          console.log('Purchase validation successful:', data);
+          setPurchaseExists(true);
+        } else {
+          console.log('Purchase not found or access denied');
+          setPurchaseExists(false);
+        }
+      } catch (error) {
+        console.error('Purchase validation error:', error);
+        setPurchaseExists(false);
+      }
+    };
+
+    checkPurchase();
+  }, [purchaseId, user?.id]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -43,6 +80,15 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
       return;
     }
 
+    if (purchaseExists === false) {
+      toast({
+        title: "Error",
+        description: "Purchase tidak ditemukan atau tidak dapat diakses",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setUploading(true);
 
     try {
@@ -50,29 +96,6 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
       console.log('User ID:', user.id);
       console.log('Purchase ID:', purchaseId);
       console.log('File:', selectedFile.name, 'Size:', selectedFile.size);
-
-      // Validate purchase ownership first
-      const { data: purchaseData, error: purchaseError } = await supabase
-        .from('purchases')
-        .select('id, user_id, payment_status')
-        .eq('id', purchaseId)
-        .eq('user_id', user.id)
-        .single();
-
-      if (purchaseError) {
-        console.error('Purchase validation error:', purchaseError);
-        throw new Error('Purchase tidak ditemukan atau tidak dapat diakses');
-      }
-
-      if (!purchaseData) {
-        throw new Error('Purchase tidak ditemukan');
-      }
-
-      if (purchaseData.payment_status !== 'pending') {
-        throw new Error('Upload bukti pembayaran hanya dapat dilakukan untuk pesanan dengan status pending');
-      }
-
-      console.log('Purchase validation successful:', purchaseData);
 
       // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop();
@@ -151,6 +174,30 @@ export function PaymentProofUpload({ purchaseId, onUploadComplete }: PaymentProo
 
     setUploading(false);
   };
+
+  if (purchaseExists === null) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center">
+            <p className="text-gray-600">Memvalidasi pesanan...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (purchaseExists === false) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-red-600">
+            <p>Pesanan tidak ditemukan atau Anda tidak memiliki akses.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (uploaded) {
     return (

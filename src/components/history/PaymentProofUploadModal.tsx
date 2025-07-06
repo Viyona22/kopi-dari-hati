@@ -49,31 +49,46 @@ export function PaymentProofUploadModal({ purchaseId, onUploadComplete }: Paymen
     try {
       console.log('Starting upload process...');
       
-      // Validate purchase ownership first
+      // Validate purchase ownership first - menggunakan single() tanpa .single()
       const { data: purchaseData, error: purchaseError } = await supabase
         .from('purchases')
         .select('id, user_id, payment_status')
         .eq('id', purchaseId)
-        .eq('user_id', user.id)
-        .single();
+        .limit(1);
 
-      if (purchaseError || !purchaseData) {
+      if (purchaseError) {
+        console.error('Purchase validation error:', purchaseError);
         throw new Error('Purchase tidak ditemukan atau tidak dapat diakses');
       }
 
-      if (purchaseData.payment_status !== 'pending') {
+      if (!purchaseData || purchaseData.length === 0) {
+        throw new Error('Purchase tidak ditemukan');
+      }
+
+      const purchase = purchaseData[0];
+      
+      if (purchase.user_id !== user.id) {
+        throw new Error('Anda tidak memiliki akses ke purchase ini');
+      }
+
+      if (purchase.payment_status !== 'pending') {
         throw new Error('Upload bukti pembayaran hanya dapat dilakukan untuk pesanan dengan status pending');
       }
+
+      console.log('Purchase validation successful:', purchase);
 
       // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${user.id}/${purchaseId}-${Date.now()}.${fileExt}`;
+
+      console.log('Uploading to storage with filename:', fileName);
 
       const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
         .upload(fileName, selectedFile);
 
       if (uploadError) {
+        console.error('Storage upload error:', uploadError);
         throw new Error(`Gagal mengunggah file: ${uploadError.message}`);
       }
 
