@@ -3,14 +3,25 @@ import { useAppSettings } from './useAppSettings';
 import { useEffect, useState } from 'react';
 
 export function useCafeSettings() {
-  const { getSetting, loading } = useAppSettings();
+  const { getSetting, loading, settings } = useAppSettings();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [hasTimeout, setHasTimeout] = useState(false);
 
   // Force refresh when settings might have changed
   const refresh = () => {
     console.log('useCafeSettings refresh triggered');
     setRefreshKey(prev => prev + 1);
   };
+
+  // Add timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      console.log('useCafeSettings: Loading timeout reached, using fallbacks');
+      setHasTimeout(true);
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   useEffect(() => {
     // Listen for storage events to refresh when settings change
@@ -32,6 +43,9 @@ export function useCafeSettings() {
       window.removeEventListener('storage', handleCustomStorageEvent);
     };
   }, []);
+
+  // Use timeout or loading state to determine if we should use fallbacks
+  const shouldUseFallbacks = hasTimeout || !loading;
 
   // Provide fallback values with more robust checking
   const qrisEnabled = getSetting('payment_qris_enabled', true);
@@ -73,15 +87,7 @@ export function useCafeSettings() {
   };
 
   console.log('useCafeSettings - Current payment methods:', paymentMethods);
-  console.log('useCafeSettings - Raw settings:', {
-    qrisEnabled,
-    qrisValue,
-    bankEnabled,
-    bankAccount,
-    ewalletEnabled,
-    ewalletOptions,
-    ewalletContacts
-  });
+  console.log('useCafeSettings - shouldUseFallbacks:', shouldUseFallbacks, 'loading:', loading, 'hasTimeout:', hasTimeout);
 
   return {
     cafeName: getSetting('cafe_name', 'Kopi dari Hati'),
@@ -108,7 +114,7 @@ export function useCafeSettings() {
       sunday: false
     }),
     paymentMethods,
-    loading,
+    loading: shouldUseFallbacks ? false : loading, // Force loading to false after timeout
     refresh
   };
 }

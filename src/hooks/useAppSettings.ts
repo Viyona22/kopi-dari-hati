@@ -19,6 +19,7 @@ export function useAppSettings() {
 
   const fetchSettings = async () => {
     try {
+      console.log('useAppSettings: Starting to fetch settings...');
       const { data, error } = await supabase
         .from('app_settings')
         .select('*')
@@ -35,16 +36,18 @@ export function useAppSettings() {
         throw error;
       }
 
+      console.log('useAppSettings: Successfully fetched settings:', data?.length || 0);
       setSettings(data || []);
     } catch (error) {
       console.error('Error fetching settings:', error);
       // Don't show error toast for permission issues
       if (!((error as any)?.code === '42501')) {
-        toast.error('Gagal memuat pengaturan');
+        console.warn('Failed to load settings, using defaults');
       }
       setSettings([]);
     } finally {
       setLoading(false);
+      console.log('useAppSettings: Finished loading settings');
     }
   };
 
@@ -139,7 +142,7 @@ export function useAppSettings() {
   const getSetting = (key: string, defaultValue: any = null) => {
     const setting = settings.find(s => s.setting_key === key);
     const value = setting?.setting_value ?? defaultValue;
-    console.log(`getSetting(${key}):`, value);
+    console.log(`getSetting(${key}):`, value, 'from settings array length:', settings.length);
     return value;
   };
 
@@ -148,9 +151,17 @@ export function useAppSettings() {
   };
 
   useEffect(() => {
+    // Add timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.log('useAppSettings: Fetch timeout, stopping loading');
+        setLoading(false);
+      }
+    }, 8000); // 8 second timeout
+
     fetchSettings();
 
-    // Listen for real-time updates
+    // Listen for real-time updates (but don't let this block the initial load)
     const channel = supabase
       .channel('app_settings_changes')
       .on(
@@ -160,14 +171,18 @@ export function useAppSettings() {
           schema: 'public',
           table: 'app_settings'
         },
-        () => {
-          // Refresh settings when changes occur
-          fetchSettings();
+        (payload) => {
+          console.log('Real-time settings update received:', payload);
+          // Only refresh if we're not in initial loading state
+          if (!loading) {
+            fetchSettings();
+          }
         }
       )
       .subscribe();
 
     return () => {
+      clearTimeout(timeout);
       supabase.removeChannel(channel);
     };
   }, []);

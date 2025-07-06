@@ -18,6 +18,8 @@ export default function Index() {
     loading 
   } = useCafeSettings();
 
+  console.log('Index component render - loading:', loading, 'cafeName:', cafeName);
+
   // Use dynamic logo or fallback to existing
   const logoSrc = cafeLogo || "https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/8b514823c305a6f7e15578d979e8300b3985302e?placeholderIfAbsent=true";
   
@@ -35,18 +37,23 @@ export default function Index() {
     ];
   }
 
+  // Add a maximum loading time before showing content anyway
   if (loading) {
+    console.log('Index component showing loading state');
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d4462d] mx-auto mb-4"></div>
             <p className="text-gray-600">Memuat...</p>
+            <p className="text-xs text-gray-400 mt-2">Jika terus memuat, silakan refresh halaman</p>
           </div>
         </div>
       </Layout>
     );
   }
+
+  console.log('Index component rendering main content');
 
   return (
     <Layout>
@@ -58,6 +65,7 @@ export default function Index() {
             alt="Logo" 
             className={`${isMobile ? 'w-16 h-16' : 'w-20 h-20'} mx-auto mb-4 rounded-full object-cover`} 
             onError={(e) => {
+              console.log('Logo failed to load, using fallback');
               (e.target as HTMLImageElement).src = "https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/8b514823c305a6f7e15578d979e8300b3985302e?placeholderIfAbsent=true";
             }}
           />
