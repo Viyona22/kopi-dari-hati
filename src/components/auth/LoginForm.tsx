@@ -38,7 +38,6 @@ export function LoginForm() {
         }
       } else if (data?.user) {
         console.log('Admin login successful for:', data.user.email);
-        // Navigate using React Router instead of window.location
         navigate('/admin', { replace: true });
       }
     } catch (err) {

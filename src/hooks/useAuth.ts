@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { UserProfile } from '@/types/auth';
@@ -11,53 +11,39 @@ export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profileLoading, setProfileLoading] = useState(false);
 
-  // Simplified profile loading without timeout complications
   const loadUserProfile = useCallback(async (userId: string) => {
-    if (profileLoading) {
-      console.log('Profile loading already in progress, skipping...');
-      return;
-    }
-
-    console.log('Loading user profile for:', userId);
-    setProfileLoading(true);
-    
     try {
+      console.log('Loading user profile for:', userId);
       const profile = await ProfileService.loadUserProfile(userId);
       console.log('Profile loaded:', profile);
       setUserProfile(profile);
     } catch (error) {
       console.error('Error loading user profile:', error);
       setUserProfile(null);
-    } finally {
-      setProfileLoading(false);
     }
-  }, [profileLoading]);
-
-  // Handle auth state changes
-  const handleAuthStateChange = useCallback(async (event: string, session: Session | null) => {
-    console.log('Auth state changed:', event, session?.user?.id);
-    
-    setSession(session);
-    setUser(session?.user ?? null);
-    
-    if (session?.user) {
-      // Load profile for authenticated user
-      await loadUserProfile(session.user.id);
-    } else {
-      // Clear profile data on sign out
-      setUserProfile(null);
-    }
-    
-    setLoading(false);
-  }, [loadUserProfile]);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
 
     // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (!mounted) return;
+      
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        await loadUserProfile(session.user.id);
+      } else {
+        setUserProfile(null);
+      }
+      
+      setLoading(false);
+    });
 
     // Check for existing session
     const checkSession = async () => {
@@ -91,7 +77,7 @@ export function useAuth() {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []); // Empty dependency array to run only once
+  }, [loadUserProfile]);
 
   const signIn = async (email: string, password: string) => {
     return await AuthService.signIn(email, password);
@@ -109,18 +95,15 @@ export function useAuth() {
     return { error };
   };
 
-  // Memoize computed values to prevent unnecessary re-renders
-  const authValue = useMemo(() => ({
+  return {
     user,
     session,
     userProfile,
-    loading: loading || profileLoading,
+    loading,
     signIn,
     signUp,
     signOut,
     isAdmin: userProfile?.role === 'admin',
     isCustomer: userProfile?.role === 'customer'
-  }), [user, session, userProfile, loading, profileLoading]);
-
-  return authValue;
+  };
 }
