@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, ShoppingBag, Users, MapPin } from 'lucide-react';
+import { PaymentProofUploadModal } from './PaymentProofUploadModal';
 
 interface ActivityCardProps {
   activity: {
@@ -14,10 +15,13 @@ interface ActivityCardProps {
     totalAmount?: number;
     customerName: string;
     details?: any;
+    payment_status?: string;
+    payment_deadline?: string;
   };
+  onRefresh?: () => void;
 }
 
-export function ActivityCard({ activity }: ActivityCardProps) {
+export function ActivityCard({ activity, onRefresh }: ActivityCardProps) {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'selesai':
@@ -52,6 +56,16 @@ export function ActivityCard({ activity }: ActivityCardProps) {
     });
   };
 
+  // Check if payment proof upload is needed
+  const needsPaymentProof = activity.type === 'pemesanan' && 
+    activity.payment_status === 'pending' && 
+    activity.status !== 'Selesai' && 
+    activity.status !== 'Dibatalkan';
+
+  // Check if payment deadline has passed
+  const isPaymentExpired = activity.payment_deadline && 
+    new Date(activity.payment_deadline) < new Date();
+
   return (
     <Card className="w-full hover:shadow-md transition-shadow">
       <CardContent className="p-6">
@@ -71,9 +85,19 @@ export function ActivityCard({ activity }: ActivityCardProps) {
               </p>
             </div>
           </div>
-          <Badge className={getStatusColor(activity.status)}>
-            {activity.status}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge className={getStatusColor(activity.status)}>
+              {activity.status}
+            </Badge>
+            {needsPaymentProof && !isPaymentExpired && (
+              <PaymentProofUploadModal 
+                purchaseId={activity.id}
+                onUploadComplete={() => {
+                  if (onRefresh) onRefresh();
+                }}
+              />
+            )}
+          </div>
         </div>
 
         <div className="space-y-2 mb-4">
@@ -94,6 +118,45 @@ export function ActivityCard({ activity }: ActivityCardProps) {
             </div>
           )}
         </div>
+
+        {/* Payment Status Info for Orders */}
+        {activity.type === 'pemesanan' && activity.payment_status && (
+          <div className="mb-4">
+            {activity.payment_status === 'pending' && !isPaymentExpired && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  <strong>Menunggu Pembayaran:</strong> Silakan upload bukti pembayaran untuk melanjutkan pesanan.
+                </p>
+                {activity.payment_deadline && (
+                  <p className="text-xs text-yellow-700 mt-1">
+                    Batas waktu: {new Date(activity.payment_deadline).toLocaleString('id-ID')}
+                  </p>
+                )}
+              </div>
+            )}
+            {activity.payment_status === 'uploaded' && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Bukti Pembayaran Diunggah:</strong> Menunggu verifikasi admin.
+                </p>
+              </div>
+            )}
+            {activity.payment_status === 'verified' && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-sm text-green-800">
+                  <strong>Pembayaran Terverifikasi:</strong> Pesanan sedang diproses.
+                </p>
+              </div>
+            )}
+            {isPaymentExpired && activity.payment_status === 'pending' && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-800">
+                  <strong>Batas Waktu Pembayaran Habis:</strong> Pesanan akan dibatalkan secara otomatis.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {activity.type === 'pemesanan' && activity.totalAmount && (
           <div className="bg-gray-50 p-3 rounded-lg">

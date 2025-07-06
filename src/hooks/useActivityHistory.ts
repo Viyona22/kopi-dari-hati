@@ -13,6 +13,8 @@ interface Activity {
   customerName: string;
   details?: any;
   created_at: string;
+  payment_status?: string;
+  payment_deadline?: string;
 }
 
 export function useActivityHistory() {
@@ -80,7 +82,9 @@ export function useActivityHistory() {
             paymentMethod: purchase.payment_method,
             orderItems: purchase.order_items
           },
-          created_at: purchase.created_at || new Date().toISOString()
+          created_at: purchase.created_at || new Date().toISOString(),
+          payment_status: purchase.payment_status,
+          payment_deadline: purchase.payment_deadline
         };
       });
 

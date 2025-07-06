@@ -142,7 +142,11 @@ function HistoryContent() {
               </div>
             ) : (
               filteredActivities.map((activity) => (
-                <ActivityCard key={`${activity.type}-${activity.id}`} activity={activity} />
+                <ActivityCard 
+                  key={`${activity.type}-${activity.id}`} 
+                  activity={activity} 
+                  onRefresh={refreshActivities}
+                />
               ))
             )}
           </div>
