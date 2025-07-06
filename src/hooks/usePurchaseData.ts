@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase, Purchase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useAuthContext } from '@/components/auth/AuthProvider'
@@ -9,6 +9,9 @@ export function usePurchaseData() {
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
   const { user, userProfile } = useAuthContext()
+  
+  // Track if we've already shown success toast to prevent duplicates
+  const lastSuccessToastId = useRef<string | null>(null)
 
   // Load purchases from Supabase
   const loadPurchases = async () => {
@@ -91,8 +94,15 @@ export function usePurchaseData() {
       }
       
       console.log('✅ Purchase saved successfully:', data);
+      
+      // Only show success toast once per purchase
+      const newPurchaseId = data[0].id;
+      if (lastSuccessToastId.current !== newPurchaseId) {
+        lastSuccessToastId.current = newPurchaseId;
+        toast.success('Pembelian berhasil disimpan!')
+      }
+      
       await loadPurchases() // Refresh data
-      toast.success('Pembelian berhasil disimpan!')
       return data[0]
     } catch (error) {
       console.error('=== SAVE PURCHASE ERROR ===');

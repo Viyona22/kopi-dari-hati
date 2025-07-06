@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,8 +26,15 @@ export default function Payment() {
   const [paymentDeadline, setPaymentDeadline] = useState(null);
   const [currentPurchase, setCurrentPurchase] = useState(null);
   const [isCreatingPurchase, setIsCreatingPurchase] = useState(false);
+  
+  // Use ref to prevent duplicate purchase creation
+  const hasCreatedPurchase = useRef(false);
+  const initializationComplete = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple initializations
+    if (initializationComplete.current) return;
+
     console.log('Payment page loaded with params:', { purchaseId });
     console.log('Location state:', location.state);
     console.log('User authenticated:', !!user);
@@ -55,6 +62,7 @@ export default function Payment() {
             payment_method: existingPurchase.payment_method
           });
           setPaymentDeadline(existingPurchase.payment_deadline);
+          initializationComplete.current = true;
           return;
         }
       }
@@ -77,16 +85,24 @@ export default function Payment() {
     }
     
     setOrderData(data);
+    initializationComplete.current = true;
     
-    // Create purchase record when payment page loads
-    createPurchaseRecord(data);
-  }, [location.state, navigate, purchaseId, purchases, user]);
+    // Create purchase record when payment page loads (only once)
+    if (!hasCreatedPurchase.current && !purchaseId) {
+      createPurchaseRecord(data);
+    }
+  }, [location.state, navigate, purchaseId, purchases, user]); // Remove dependencies that cause re-runs
 
   const createPurchaseRecord = async (data) => {
-    if (isCreatingPurchase) return; // Prevent duplicate creation
+    // Prevent duplicate creation
+    if (isCreatingPurchase || hasCreatedPurchase.current) {
+      console.log('Purchase creation already in progress or completed');
+      return;
+    }
     
     try {
       setIsCreatingPurchase(true);
+      hasCreatedPurchase.current = true; // Mark as started immediately
       console.log('Creating purchase record with data:', data);
       
       const purchaseData = {
@@ -104,6 +120,7 @@ export default function Payment() {
       setPaymentDeadline(result.payment_deadline);
     } catch (error) {
       console.error('Error creating purchase:', error);
+      hasCreatedPurchase.current = false; // Reset on error
       toast({
         title: "Terjadi Kesalahan",
         description: "Gagal membuat pesanan. Silakan coba lagi.",
