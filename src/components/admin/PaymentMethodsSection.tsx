@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -103,7 +102,6 @@ export function PaymentMethodsSection() {
 
     if (success.every(Boolean)) {
       toast.success('Pengaturan metode pembayaran berhasil disimpan');
-      // Force refresh by dispatching multiple events
       window.dispatchEvent(new CustomEvent('settings-updated'));
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('storage', { detail: 'payment-methods-updated' }));
@@ -164,6 +162,7 @@ export function PaymentMethodsSection() {
                       value={qrisValue} 
                       size={150}
                       level="M"
+                      title="QRIS Preview"
                     />
                   </div>
                 </div>

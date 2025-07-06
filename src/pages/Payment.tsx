@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Clock, ArrowLeft } from 'lucide-react';
 import { PaymentMethodDetail } from '@/components/payment/PaymentMethodDetail';
+import { PaymentMethodDisplay } from '@/components/payment/PaymentMethodDisplay';
 import { PaymentMethodChangeModal } from '@/components/payment/PaymentMethodChangeModal';
 import { PaymentProofUpload } from '@/components/payment/PaymentProofUpload';
 import { PaymentTimer } from '@/components/payment/PaymentTimer';
@@ -26,19 +27,16 @@ export default function Payment() {
   const [currentPurchase, setCurrentPurchase] = useState(null);
   const [isCreatingPurchase, setIsCreatingPurchase] = useState(false);
   
-  // Use ref to prevent duplicate purchase creation
   const hasCreatedPurchase = useRef(false);
   const initializationComplete = useRef(false);
 
   useEffect(() => {
-    // Prevent multiple initializations
     if (initializationComplete.current) return;
 
     console.log('Payment page loaded with params:', { purchaseId });
     console.log('Location state:', location.state);
     console.log('User authenticated:', !!user);
     
-    // Check if user is authenticated
     if (!user) {
       console.log('User not authenticated, redirecting to login');
       navigate('/login');
@@ -47,7 +45,6 @@ export default function Payment() {
     
     const data = location.state?.orderData;
     if (!data) {
-      // Try to find existing purchase if no order data
       if (purchaseId && purchases.length > 0) {
         const existingPurchase = purchases.find(p => p.id === purchaseId);
         if (existingPurchase) {
@@ -71,7 +68,6 @@ export default function Payment() {
       return;
     }
 
-    // Validate payment method before creating purchase
     if (!VALID_PAYMENT_METHODS.includes(data.payment_method)) {
       console.error('Invalid payment method:', data.payment_method);
       toast({
@@ -86,14 +82,12 @@ export default function Payment() {
     setOrderData(data);
     initializationComplete.current = true;
     
-    // Create purchase record when payment page loads (only once)
     if (!hasCreatedPurchase.current && !purchaseId) {
       createPurchaseRecord(data);
     }
-  }, [location.state, navigate, purchaseId, purchases, user]); // Remove dependencies that cause re-runs
+  }, [location.state, navigate, purchaseId, purchases, user]);
 
   const createPurchaseRecord = async (data) => {
-    // Prevent duplicate creation
     if (isCreatingPurchase || hasCreatedPurchase.current) {
       console.log('Purchase creation already in progress or completed');
       return;
@@ -101,7 +95,7 @@ export default function Payment() {
     
     try {
       setIsCreatingPurchase(true);
-      hasCreatedPurchase.current = true; // Mark as started immediately
+      hasCreatedPurchase.current = true;
       console.log('Creating purchase record with data:', data);
       
       const purchaseData = {
@@ -119,7 +113,7 @@ export default function Payment() {
       setPaymentDeadline(result.payment_deadline);
     } catch (error) {
       console.error('Error creating purchase:', error);
-      hasCreatedPurchase.current = false; // Reset on error
+      hasCreatedPurchase.current = false;
       toast({
         title: "Terjadi Kesalahan",
         description: "Gagal membuat pesanan. Silakan coba lagi.",
@@ -137,13 +131,11 @@ export default function Payment() {
     try {
       await updatePaymentMethod(finalPurchaseId, newPaymentMethod);
       
-      // Update local order data
       setOrderData(prev => ({
         ...prev,
         payment_method: newPaymentMethod
       }));
 
-      // Update current purchase
       if (currentPurchase) {
         setCurrentPurchase(prev => ({
           ...prev,
@@ -152,7 +144,7 @@ export default function Payment() {
         }));
       }
     } catch (error) {
-      throw error; // Re-throw to be handled by the modal
+      throw error;
     }
   };
 
@@ -171,7 +163,6 @@ export default function Payment() {
     }, 3000);
   };
 
-  // Check if payment method can be changed
   const canChangePaymentMethod = currentPurchase && 
     currentPurchase.payment_status === 'pending' && 
     !currentPurchase.payment_proof_id &&
@@ -293,11 +284,10 @@ export default function Payment() {
               )}
             </div>
 
-            {/* Use PaymentMethodDisplay component for better structure */}
             <PaymentMethodDisplay
               selectedMethod={orderData.payment_method}
-              onMethodChange={() => {}} // Not used in display-only mode
-              availableMethods={[orderData.payment_method]} // Only show current method
+              onMethodChange={() => {}}
+              availableMethods={[orderData.payment_method]}
             />
             
             {finalPurchaseId && (
