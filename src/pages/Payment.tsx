@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
@@ -294,7 +293,12 @@ export default function Payment() {
               )}
             </div>
 
-            <PaymentMethodDetail paymentMethod={orderData.payment_method} />
+            {/* Use PaymentMethodDisplay component for better structure */}
+            <PaymentMethodDisplay
+              selectedMethod={orderData.payment_method}
+              onMethodChange={() => {}} // Not used in display-only mode
+              availableMethods={[orderData.payment_method]} // Only show current method
+            />
             
             {finalPurchaseId && (
               <PaymentProofUpload 
