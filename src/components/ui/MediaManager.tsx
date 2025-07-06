@@ -11,8 +11,8 @@ export function MediaManager() {
       
       try {
         // Get all audio and video elements with existence check
-        const audioElements = document.querySelectorAll('audio');
-        const videoElements = document.querySelectorAll('video');
+        const audioElements = document.querySelectorAll('audio') as NodeListOf<HTMLAudioElement>;
+        const videoElements = document.querySelectorAll('video') as NodeListOf<HTMLVideoElement>;
         
         // Safely pause audio elements
         audioElements.forEach(audio => {
@@ -41,17 +41,17 @@ export function MediaManager() {
     };
 
     // Simplified play event handler
-    const handlePlay = (event) => {
+    const handlePlay = (event: Event) => {
       if (isCleaningUp || !event || !event.target) return;
       
       try {
-        const target = event.target;
+        const target = event.target as HTMLMediaElement;
         
         // Only proceed if target is a valid media element
         if (!target || typeof target.pause !== 'function') return;
         
         // Get all media elements and pause others
-        const allMedia = document.querySelectorAll('audio, video');
+        const allMedia = document.querySelectorAll('audio, video') as NodeListOf<HTMLMediaElement>;
         
         allMedia.forEach(media => {
           try {
@@ -68,7 +68,7 @@ export function MediaManager() {
     };
 
     // Minimal error handler
-    const handleMediaError = (event) => {
+    const handleMediaError = (event: Event) => {
       // Just prevent default behavior, don't log to reduce console noise
       if (event && typeof event.preventDefault === 'function') {
         event.preventDefault();
