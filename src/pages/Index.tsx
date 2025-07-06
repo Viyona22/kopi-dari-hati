@@ -39,12 +39,9 @@ export default function Index() {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="bg-gray-200 rounded-lg h-64 mb-16"></div>
-            <div className="space-y-4">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            </div>
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#d4462d] mx-auto mb-4"></div>
+            <p className="text-gray-600">Memuat...</p>
           </div>
         </div>
       </Layout>
@@ -55,20 +52,23 @@ export default function Index() {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}
-        <section className={`bg-[rgba(217,217,217,1)] rounded-lg ${isMobile ? 'p-6' : 'p-8'} text-center mb-16`}>
+        <section className={`bg-[#d9d9d9] rounded-lg ${isMobile ? 'p-6' : 'p-8'} text-center mb-16`}>
           <img 
             src={logoSrc} 
             alt="Logo" 
-            className={`${isMobile ? 'w-16 h-16' : 'w-[72px]'} mx-auto mb-4 rounded-full`} 
+            className={`${isMobile ? 'w-16 h-16' : 'w-20 h-20'} mx-auto mb-4 rounded-full object-cover`} 
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "https://cdn.builder.io/api/v1/image/assets/6881c5c08f454e4a8f857991aba7c465/8b514823c305a6f7e15578d979e8300b3985302e?placeholderIfAbsent=true";
+            }}
           />
-          <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-[#d4462d] mb-4`}>
-            {cafeName}
+          <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold text-[#d4462d] mb-4`}>
+            {cafeName || 'Kopi dari Hati'}
           </h1>
-          <p className={`text-[#d4462d] mb-6 ${isMobile ? 'text-sm' : ''}`}>
-            "{cafeDescription}"
+          <p className={`text-[#d4462d] mb-6 ${isMobile ? 'text-sm' : 'text-base'}`}>
+            "{cafeDescription || 'Pengalaman kopi dan camilan autentik dengan cita rasa Bangka yang tak terlupakan'}"
           </p>
-          <p className={`text-[#d4462d] ${isMobile ? 'text-sm' : ''}`}>
-            "{cafeTagline}"
+          <p className={`text-[#d4462d] ${isMobile ? 'text-sm' : 'text-base'}`}>
+            "{cafeTagline || 'Kamu Obsesi Paling Indah dari Hati'}"
           </p>
           
           <div className={`flex justify-center mt-8 ${isMobile ? 'flex-col gap-3' : 'gap-4'}`}>
@@ -92,7 +92,7 @@ export default function Index() {
 
         {/* Services Section */}
         <section className="mb-16">
-          <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-[#d4462d] text-center mb-8`}>
+          <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-[#d4462d] text-center mb-8`}>
             LAYANAN KAMI
           </h2>
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-3 gap-8'}`}>
@@ -116,8 +116,8 @@ export default function Index() {
 
         {/* Atmosphere Section */}
         <section className="mb-16">
-          <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-[#d4462d] text-center mb-8`}>
-            SUASANA {cafeName.toUpperCase()}
+          <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-[#d4462d] text-center mb-8`}>
+            SUASANA {(cafeName || 'KOPI DARI HATI').toUpperCase()}
           </h2>
           <div className={`flex justify-center ${isMobile ? 'flex-col items-center gap-4' : 'gap-8'}`}>
             {displayImages.slice(0, 2).map((image, index) => (
@@ -125,7 +125,7 @@ export default function Index() {
                 key={index}
                 src={image} 
                 alt={`Suasana ${index + 1}`} 
-                className={`${isMobile ? 'w-full max-w-[280px] h-[200px]' : 'w-[163px] h-[240px]'} object-cover rounded-lg`} 
+                className={`${isMobile ? 'w-full max-w-[280px] h-[200px]' : 'w-[200px] h-[240px]'} object-cover rounded-lg shadow-md`} 
                 onError={(e) => {
                   // Fallback to default image if uploaded image fails
                   const defaultImages = [

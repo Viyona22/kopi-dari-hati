@@ -7,7 +7,7 @@ import Autoplay from 'embla-carousel-autoplay';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 export function MenuCarousel() {
-  const { menuItems, loading } = useMenuData();
+  const { menuItems, loading, error } = useMenuData();
   const isMobile = useIsMobile();
   
   const plugin = React.useRef(
@@ -36,19 +36,47 @@ export function MenuCarousel() {
 
   if (loading) {
     return (
-      <div className="text-center py-8 text-[#d4462d]">
-        Memuat menu...
-      </div>
+      <section className="mb-16">
+        <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-[#d4462d] text-center mb-8`}>
+          MENU SPESIAL KAMI
+        </h2>
+        <div className="text-center py-8 text-[#d4462d]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d4462d] mx-auto mb-4"></div>
+          <p>Memuat menu...</p>
+        </div>
+      </section>
     );
   }
 
-  if (menuItems.length === 0) {
-    return null;
+  if (error) {
+    return (
+      <section className="mb-16">
+        <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-[#d4462d] text-center mb-8`}>
+          MENU SPESIAL KAMI
+        </h2>
+        <div className="text-center py-8 text-red-500">
+          <p>Gagal memuat menu. Silakan coba lagi.</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (!menuItems || menuItems.length === 0) {
+    return (
+      <section className="mb-16">
+        <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-[#d4462d] text-center mb-8`}>
+          MENU SPESIAL KAMI
+        </h2>
+        <div className="text-center py-8 text-gray-500">
+          <p>Belum ada menu yang tersedia.</p>
+        </div>
+      </section>
+    );
   }
 
   return (
     <section className="mb-16">
-      <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold text-[#d4462d] text-center mb-8`}>
+      <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-[#d4462d] text-center mb-8`}>
         MENU SPESIAL KAMI
       </h2>
       <div className={`${isMobile ? 'max-w-full' : 'max-w-4xl'} mx-auto`}>
@@ -67,7 +95,10 @@ export function MenuCarousel() {
                       <img 
                         src={item.image || '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png'} 
                         alt={item.name} 
-                        className={`w-full ${isMobile ? 'h-48' : 'h-40'} object-cover`} 
+                        className={`w-full ${isMobile ? 'h-48' : 'h-40'} object-cover`}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/lovable-uploads/e5b13f61-142b-4b00-843c-3a4c4da053aa.png';
+                        }}
                       />
                       
                       {/* Badge for first few items */}
