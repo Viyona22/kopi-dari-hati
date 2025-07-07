@@ -4,8 +4,12 @@
   command = "npm ci && npm run build"
   # Directory to publish
   publish = "dist"
+
+[build.environment]
   # Node version - using LTS
-  environment = { NODE_VERSION = "20" }
+  NODE_VERSION = "20"
+  NODE_ENV = "production"
+  CI = "true"
 
 [build.processing]
   skip_processing = false
@@ -17,11 +21,6 @@
 [build.processing.js]
   bundle = true
   minify = true
-
-# Basic environment variables (sensitive ones should be set in Netlify dashboard)
-[build.environment]
-  NODE_ENV = "production"
-  CI = "true"
 
 # Headers for security and performance
 [[headers]]
@@ -44,7 +43,6 @@
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {Role = ["admin", "customer"]}
 
 # Specific route redirects for better SEO
 [[redirects]]
