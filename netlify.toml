@@ -1,7 +1,8 @@
 
+
 [build]
   # Build command with legacy peer deps to handle dependency conflicts
-  command = "npm install --legacy-peer-deps && npm run build"
+  command = "npm ci --legacy-peer-deps && npm run build"
   # Directory to publish
   publish = "dist"
 
@@ -95,3 +96,4 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+
