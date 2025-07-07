@@ -1,0 +1,12 @@
+
+# Redirect all routes to index.html for SPA routing
+/*    /index.html   200
+
+# Optional: Redirect HTTP to HTTPS
+# http://example.com/*  https://example.com/:splat  301!
+
+# API redirects (if needed for Supabase functions)
+/api/*  https://xokqnkvjpiygfxtmwmuu.supabase.co/functions/v1/:splat  200
+
+# Optional: Cache static assets
+/static/*  /static/:splat  200
