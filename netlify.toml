@@ -1,19 +1,29 @@
 
 [build]
-  # Build command
-  command = "npm run build"
+  # Build command with better error handling
+  command = "npm ci && npm run build"
   # Directory to publish
   publish = "dist"
-  # Node version
-  environment = { NODE_VERSION = "18" }
+  # Node version - using LTS
+  environment = { NODE_VERSION = "20" }
 
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+# Basic environment variables (sensitive ones should be set in Netlify dashboard)
 [build.environment]
-  # Build environment variables
   NODE_ENV = "production"
-  VITE_SUPABASE_URL = "https://xokqnkvjpiygfxtmwmuu.supabase.co"
-  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhva3Fua3ZqcGl5Z2Z4dG13bXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NTY1OTYsImV4cCI6MjA2NDIzMjU5Nn0.yeW3mfg3Q30nYGR4SzClz5C57d7-1fBMgM7cslBxPOk"
+  CI = "true"
 
-# Headers for security
+# Headers for security and performance
 [[headers]]
   for = "/*"
   [headers.values]
@@ -21,16 +31,24 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Robots-Tag = "noindex, nofollow"
 
-# Cache static assets
+# Cache static assets for better performance
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Redirect rules
+# SPA routing - redirect all routes to index.html
 [[redirects]]
-  from = "/admin/*"
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Role = ["admin", "customer"]}
+
+# Specific route redirects for better SEO
+[[redirects]]
+  from = "/admin"
   to = "/index.html"
   status = 200
 
@@ -40,7 +58,7 @@
   status = 200
 
 [[redirects]]
-  from = "/menu/*"
+  from = "/menu"
   to = "/index.html"
   status = 200
 
@@ -69,6 +87,13 @@
   to = "/index.html"
   status = 200
 
-# Form handling (if you want to use Netlify forms)
-# [[plugins]]
-#   package = "@netlify/plugin-form-submissions"
+# API redirects for Supabase
+[[redirects]]
+  from = "/api/*"
+  to = "https://xokqnkvjpiygfxtmwmuu.supabase.co/functions/v1/:splat"
+  status = 200
+
+# Functions configuration
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
