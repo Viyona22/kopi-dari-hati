@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { Layout } from '../components/layout/Layout';
+import { Layout } from '@/components/layout/Layout';
 import { Link } from 'react-router-dom';
-import { ServiceCard } from '../components/ui/ServiceCard';
-import { MenuCarousel } from '../components/home/MenuCarousel';
+import { ServiceCard } from '@/components/ui/ServiceCard';
+import { MenuCarousel } from '@/components/home/MenuCarousel';
 import { useCafeSettings } from '@/hooks/useCafeSettings';
 import { useIsMobile } from '@/hooks/use-mobile';
 
